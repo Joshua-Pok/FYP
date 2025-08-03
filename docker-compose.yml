@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  # Postgres Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: dev_postgres
+    environment:
+      POSTGRES_DB: myapp
+      POSTGRES_USER: dev
+      POSTGRES_PASSWORD: devpass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dev -d myapp"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: dev_redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Go App (for production-like testing)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dev_app
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=dev
+      - DB_PASSWORD=devpass
+      - DB_NAME=myapp
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - ENV=development
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    # Remove this section if you want to run Go locally
+    profiles:
+      - production-test
+
+volumes:
+  postgres_data:
+  redis_data:
