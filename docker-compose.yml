@@ -6,9 +6,9 @@ services:
     image: postgres:15-alpine
     container_name: dev_postgres
     environment:
-      POSTGRES_DB: myapp
-      POSTGRES_USER: dev
-      POSTGRES_PASSWORD: devpass
+      POSTGRES_DB: fypbackend
+      POSTGRES_USER: joshua
+      POSTGRES_PASSWORD: joshua
     ports:
       - "5432:5432"
     volumes:
