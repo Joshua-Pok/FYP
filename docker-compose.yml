@@ -1,5 +1,4 @@
 version: '3.8'
-
 services:
   # Postgres Database
   postgres:
@@ -15,7 +14,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U dev -d myapp"]
+      test: ["CMD-SHELL", "pg_isready -U joshua -d fypbackend"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -35,6 +34,32 @@ services:
       timeout: 3s
       retries: 5
 
+  # Gorse Recommendation Engine
+  gorse:
+    image: zhenghaoz/gorse-in-one
+    container_name: dev_gorse
+    restart: unless-stopped
+    ports:
+      - "8088:8088"
+      - "8086:8086"  
+    environment:
+      # Using PostgreSQL as data store
+      GORSE_DATA_STORE: postgres://joshua:joshua@postgres:5432/fypbackend?sslmode=disable
+      # Using Redis as cache store
+      GORSE_CACHE_STORE: redis://redis:6379/0
+      # Optional: Configure other Gorse settings
+      GORSE_MASTER_HOST: 0.0.0.0
+      GORSE_MASTER_PORT: 8086
+      GORSE_HTTP_HOST: 0.0.0.0
+      GORSE_HTTP_PORT: 8088
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - gorse_data:/var/lib/gorse
+
   # Go App (for production-like testing)
   app:
     build:
@@ -46,9 +71,9 @@ services:
     environment:
       - DB_HOST=postgres
       - DB_PORT=5432
-      - DB_USER=dev
-      - DB_PASSWORD=devpass
-      - DB_NAME=myapp
+      - DB_USER=joshua
+      - DB_PASSWORD=joshua
+      - DB_NAME=fypbackend
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - ENV=development
@@ -66,3 +91,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  gorse_data:
