@@ -1,11 +1,11 @@
 version: '3.8'
 services:
-  # Postgres Database
+  # App Database
   postgres:
     image: postgres:15-alpine
     container_name: dev_postgres
     environment:
-      POSTGRES_DB: fypbackend
+      POSTGRES_DB: appbackend
       POSTGRES_USER: joshua
       POSTGRES_PASSWORD: joshua
     ports:
@@ -14,7 +14,25 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U joshua -d fypbackend"]
+      test: ["CMD-SHELL", "pg_isready -U joshua -d appbackend"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Gorse Database (separate from app database)
+  gorse_postgres:
+    image: postgres:15-alpine
+    container_name: dev_gorse_postgres
+    environment:
+      POSTGRES_DB: gorse
+      POSTGRES_USER: joshua
+      POSTGRES_PASSWORD: joshua
+    ports:
+      - "5434:5432"  # Different port to avoid conflict
+    volumes:
+      - gorse_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U joshua -d gorse"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -40,25 +58,31 @@ services:
     container_name: dev_gorse
     restart: unless-stopped
     ports:
-      - "8088:8088"
-      - "8086:8086"  
+      - "8088:8088"  # RESTful APIs
+      - "8086:8086"  # gRPC APIs
     environment:
-      # Using PostgreSQL as data store
-      GORSE_DATA_STORE: postgres://joshua:joshua@postgres:5432/fypbackend?sslmode=disable
+      # Using gorse_postgres as data store
+      GORSE_DATA_STORE: postgres://joshua:joshua@gorse_postgres:5432/gorse?sslmode=disable
       # Using Redis as cache store
       GORSE_CACHE_STORE: redis://redis:6379/0
-      # Optional: Configure other Gorse settings
+      # Gorse configuration
       GORSE_MASTER_HOST: 0.0.0.0
       GORSE_MASTER_PORT: 8086
       GORSE_HTTP_HOST: 0.0.0.0
       GORSE_HTTP_PORT: 8088
+    command: >
+      -c /etc/gorse/config.toml 
+      --log-path /var/log/gorse/master.log 
+      --cache-path /var/lib/gorse/master_cache.data
+    volumes:
+      - ./config.toml:/etc/gorse/config.toml:ro
+      - gorse_data:/var/lib/gorse
+      - gorse_logs:/var/log/gorse
     depends_on:
-      postgres:
+      gorse_postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-    volumes:
-      - gorse_data:/var/lib/gorse
 
   # Go App (for production-like testing)
   app:
@@ -73,15 +97,18 @@ services:
       - DB_PORT=5432
       - DB_USER=joshua
       - DB_PASSWORD=joshua
-      - DB_NAME=fypbackend
+      - DB_NAME=appbackend
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - GORSE_API_ENDPOINT=http://gorse:8088
       - ENV=development
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+      gorse:
+        condition: service_started
     volumes:
       - .:/app
     # Remove this section if you want to run Go locally
@@ -90,5 +117,7 @@ services:
 
 volumes:
   postgres_data:
+  gorse_postgres_data:
   redis_data:
   gorse_data:
+  gorse_logs:
