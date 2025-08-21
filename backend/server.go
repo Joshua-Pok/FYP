@@ -6,12 +6,14 @@ import (
 	"log"
 	"net/http"
 	"os"
+
+	_ "github.com/lib/pq"
 )
 
 type User struct {
-	ID    int    `json:id`
-	Name  string `json: name`
-	Email string `json: email`
+	ID    int    `json:"id"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
 }
 
 var db *sql.DB
@@ -27,9 +29,9 @@ func initDB() {
 
 	host := getEnv("DB_HOST", "localhost")
 	port := getEnv("DB_PORT", "5432")
-	user := getEnv("DB_USER", "postgres")
-	password := getEnv("DB_PASSWORD", "password")
-	dbname := getEnv("DB_NAME", "gobackend")
+	user := getEnv("DB_USER", "joshua")
+	password := getEnv("DB_PASSWORD", "joshua")
+	dbname := getEnv("DB_NAME", "postgres")
 	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
 
