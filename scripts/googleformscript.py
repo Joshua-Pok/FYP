@@ -79,7 +79,6 @@ def process_personality_csv(input_file, output_file):
     print("\nFirst few rows:")
     print(output_df.head())
 
-# Run the function
 if __name__ == "__main__":
     input_file = "survey_data.csv"  # Change this to your file name
     output_file = "gorse_users.csv"
