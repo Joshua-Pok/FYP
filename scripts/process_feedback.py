@@ -17,7 +17,7 @@ def process_feedback_csv(input_file, output_file, activity_columns=range(20,31))
     feedback_data = []
     
     for idx, row in df.iterrows():
-        user_id = f"user_{str(idx + 1).zfill(3)}"  # user_002, user_003, etc.
+        user_id = f"user_{str(idx + 1).zfill(3)}"
         for col_idx, activity_name in zip(activity_cols, activity_names):
             preference = row.iloc[col_idx]
             if str(preference).lower() in ['yes']:
