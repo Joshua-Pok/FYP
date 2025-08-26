@@ -5,7 +5,7 @@ import "os"
 type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
-}
+} 
 
 type ServerConfig struct {
 	port string
