@@ -14,7 +14,9 @@ export default function Index() {
       <Link href="/profilepage" style={styles.button}>
         Go to ProfilePage
       </Link>
-
+      <Link href="/createtrip" style={styles.button}>
+        Go to create trip
+      </Link>
       <Link href="/personalityquiz" style={styles.button}>
         Go to Personality Quiz
       </Link>
