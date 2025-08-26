@@ -3,13 +3,13 @@ import { Text, Button } from "react-native-paper";
 import Navbar from "@/components/Navbar";
 import ActivityCard from "@/components/ActivityCard";
 import Searchbar from "@/components/Searchbar";
+import Topbar from "@/components/Topbar";
 export default function AboutScreen() {
   return (
     <View style={styles.container}>
-      <Searchbar></Searchbar>
+      <Topbar></Topbar>
       <ActivityCard></ActivityCard>
       <Text variant="headlineMedium">About screen</Text>
-      <Button mode="contained">click me</Button>
       <Navbar></Navbar>
     </View>
   );
