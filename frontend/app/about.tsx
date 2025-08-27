@@ -1,8 +1,6 @@
 import { View, StyleSheet } from "react-native";
 import { Text, Button } from "react-native-paper";
-import Navbar from "@/components/Navbar";
 import ActivityCard from "@/components/ActivityCard";
-import Searchbar from "@/components/Searchbar";
 import Topbar from "@/components/Topbar";
 export default function AboutScreen() {
   return (
@@ -10,7 +8,6 @@ export default function AboutScreen() {
       <Topbar></Topbar>
       <ActivityCard></ActivityCard>
       <Text variant="headlineMedium">About screen</Text>
-      <Navbar></Navbar>
     </View>
   );
 }

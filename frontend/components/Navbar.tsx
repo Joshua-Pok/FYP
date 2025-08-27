@@ -1,10 +1,11 @@
 import { useState } from "react";
+import { StyleSheet, View } from "react-native";
 import { BottomNavigation, Text } from "react-native-paper";
 export default function Navbar() {
-  const HomeRoute = () => <Text>Music</Text>;
-  const TripsRoute = () => <Text>Trips</Text>;
-  const DummyRoute = () => <Text>Dummy</Text>;
-  const ProfileRoute = () => <Text>Profile</Text>;
+  const HomeRoute = () => <View style={styles.content}></View>;
+  const TripsRoute = () => <View />;
+  const DummyRoute = () => <View />;
+  const ProfileRoute = () => <View />;
 
   const [index, setIndex] = useState(0);
   const [routes] = useState([
@@ -36,19 +37,19 @@ export default function Navbar() {
     },
   ]);
 
-  const renderScene = BottomNavigation.SceneMap({
-    home: HomeRoute,
-    trips: TripsRoute,
-    Dummy: DummyRoute,
-    profile: ProfileRoute,
-  });
   return (
     <>
-      <BottomNavigation
+      <BottomNavigation.Bar
         navigationState={{ index, routes }}
         onIndexChange={setIndex}
-        renderScene={renderScene}
-      ></BottomNavigation>
+        renderScene={() => null}
+      ></BottomNavigation.Bar>
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  content: {
+    flex: 1,
+  },
+});

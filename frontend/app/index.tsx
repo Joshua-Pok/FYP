@@ -11,6 +11,10 @@ export default function Index() {
       <Link href="/login" style={styles.button}>
         Go to Login Screen
       </Link>
+      <Link href="/home" style={styles.button}>
+        Go to Home screen
+      </Link>
+
       <Link href="/profilepage" style={styles.button}>
         Go to ProfilePage
       </Link>
