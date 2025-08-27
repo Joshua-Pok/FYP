@@ -1,18 +1,47 @@
 CREATE TABLE IF NOT EXISTS users (
 	id SERIAL PRIMARY KEY,
 	username VARCHAR(255) UNIQUE NOT NULL,
+	name VARCHAR(255) NOT NULL,
 	email VARCHAR(255) UNIQUE NOT NULL,
+	password VARCHAR(255) NOT NULL,
 	
 )
 
-CREATE TABLE IF NOT EXISTS activities(
+CREATE TABLE IF NOT EXISTS PERSONALITY (
+	id SERIAL PRIMARY KEY,
+	FOREIGN KEY (user_id) REFERENCES users(id)
+	openness DECIMAL(10,2) NOT NULL DEFAULT 50.0,
+	extraversion DECIMAL(10,2) NOT NULL DEFAULT 50.0,
+	conscientiousness DECIMAL(10,2) NOT NULL DEFAULT 50.0,
+	neuroticism DECIMAL(10, 2) NOT NULL DEFAULT 50.0,
+	agreeableness DECIMAL(10,2) NOT NULL DEFAULT 50.0,
+
+)
+
+CREATE TABLE IF NOT EXISTS activity(
 	id SERIAL PRIMARY KEY,
 	name VARCHAR(255) NOT NULL,
-	price
-
-
+	title TEXT NOT NULL UNIQUE,
+	price FLOAT NOT NULL,
+	address VARCHAR(255),
+	rating NUMERIC ,
+	country VARCHAR(255),
+	imageURL: string,
 	)
 
-INSERT INTO users (name, email) VALUES
-('John Doe', 'john@example.com')
-('Jane Smith', 'jane@example.com')
+CREATE TABLE IF NOT EXISTS itinerary(
+	id SERIAL PRIMARY KEY,
+	user_id INT,
+	title TEXT,
+	description TEXT,
+	start_date DATE,
+	end_date DATE,
+
+)
+
+CREATE TABLE IF NOT EXISTS itinerary_activity(
+	itineraryid INT NOT NULL REFERENCES itineraries(id) ON DELETE CASCADE,
+	activityid INT NOT NULL REFERENCES activities(id) ON DELETE CASCADE,
+)
+
+

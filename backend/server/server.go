@@ -20,6 +20,7 @@ func New(cfg config.ServerConfig, db *sql.DB) *Server {
 	}
 }
 
+// TODO : FIX THIS SHIT
 func (s *Server) Start() error {
 	userRepo := repository.NewUserRepository(s.db)
 	userHandler := handlers.NewUserHandler(userRepo)

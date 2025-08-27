@@ -27,7 +27,7 @@ func (r *ItineraryRepository) DeleteItinerary(id int) nil {
 }
 
 func (r *ItineraryRepository) CreateItinerary(userId int) {
-
+	query := ``
 }
 
 func (r *ItineraryRepository) UpdateItinerary(id int) (*models.Itinerary, err) {
