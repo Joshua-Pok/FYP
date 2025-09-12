@@ -1,7 +1,6 @@
-import Navbar from "@/components/Navbar";
 import Topbar from "@/components/Topbar";
 import { TextInput } from "react-native-paper";
-import { View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { useState } from "react";
 export default function LoginScreen() {
   const [username, setUsername] = useState("");
@@ -9,19 +8,36 @@ export default function LoginScreen() {
   return (
     <>
       <Topbar></Topbar>
-      <View>
+      <View style={styles.wrapper}>
+        <Text style={styles.text}>Username: </Text>
         <TextInput
           label="Username"
           value={username}
           onChangeText={(text) => setUsername(text)}
         ></TextInput>
+        <Text style={styles.text}>Password: </Text>
         <TextInput
           label="Password"
           value={password}
           onChangeText={(text) => setPassword(text)}
         ></TextInput>
       </View>
-      <Navbar></Navbar>
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  wrapper: {
+    display: "flex",
+    flexDirection: "column",
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+  },
+
+  text: {
+    color: "black",
+    fontWeight: "600",
+    fontSize: 24,
+  },
+});

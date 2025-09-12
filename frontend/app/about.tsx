@@ -1,5 +1,5 @@
 import { View, StyleSheet } from "react-native";
-import { Text, Button } from "react-native-paper";
+import { Text } from "react-native-paper";
 import ActivityCard from "@/components/ActivityCard";
 import Topbar from "@/components/Topbar";
 export default function AboutScreen() {
