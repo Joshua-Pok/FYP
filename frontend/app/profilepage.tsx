@@ -12,7 +12,7 @@ export default function profilepage() {
       </View>
       <View>
         <Text>Personality Type: </Text>
-        <Text>Country: </Text>
+        <Text> </Text>
         <Text>Age: </Text>
 
         <Text>Travel Preferences</Text>

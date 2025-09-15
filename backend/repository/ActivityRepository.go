@@ -33,7 +33,7 @@ func (r *ActivityRepository) GetRecommendedActivities(Activities []string) ([]mo
 	}
 
 	placeholders := make([]string, len(Activities)) //create array of placeholders
-	args := make([]interface{}, len(Activities)) //create arra
+	args := make([]interface{}, len(Activities))    //create arra
 
 	for i, id := range Activities {
 		placeholders[i] = fmt.Sprintf("%d", i+1)
@@ -55,9 +55,9 @@ func (r *ActivityRepository) GetRecommendedActivities(Activities []string) ([]mo
 	defer rows.Close()
 
 	activities := []models.Activity{}
-	for rows.Next(){
+	for rows.Next() {
 		var a models.Activity
-		if err := rows.Scan(&a.ID, &a.Country, %a.address, %a.price); err != nil{
+		if err := rows.Scan(&a.ID, &a.Country, &a.address, &a.price); err != nil {
 			return nil, err
 		}
 
