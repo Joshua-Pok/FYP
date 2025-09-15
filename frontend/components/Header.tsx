@@ -3,7 +3,7 @@ export default function Header() {
   return (
     <>
       <Appbar.Header>
-        <Appbar.Content title="stupidassapp" />
+        <Appbar.Content title="Travel Planner" />
         <Appbar.Action icon="dots-vertical" />
       </Appbar.Header>
     </>

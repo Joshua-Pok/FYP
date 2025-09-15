@@ -2,7 +2,8 @@ import { StyleSheet, View } from "react-native";
 import { Button, Card, Text } from "react-native-paper";
 
 export default function ActiviyCard() {
-  return (
+const fruits = ["apple", "banana", "cherry"];
+    return (
     <Card style={styles.cardwrapper}>
       <Card.Title
         title="Activity Card"

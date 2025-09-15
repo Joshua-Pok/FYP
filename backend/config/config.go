@@ -5,7 +5,7 @@ import "os"
 type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
-} 
+}
 
 type ServerConfig struct {
 	port string
@@ -17,6 +17,7 @@ type DatabaseConfig struct {
 	User     string
 	Password string
 	DBName   string
+	DBURL    string
 }
 
 func Load() *Config {
@@ -32,12 +33,12 @@ func Load() *Config {
 			Password: getEnv("DB_PASSWORD", "joshua"),
 			DBName:   getEnv("DB_NAME", "postgres"),
 		},
-
-		func getEnv(key, defaultValue string) string{
-			if value := os.Getenv(key); value != ""{
-				return value
-			}
-			return defaultValue
-		}
 	}
+}
+
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
 }
