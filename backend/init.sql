@@ -3,45 +3,42 @@ CREATE TABLE IF NOT EXISTS users (
 	username VARCHAR(255) UNIQUE NOT NULL,
 	name VARCHAR(255) NOT NULL,
 	email VARCHAR(255) UNIQUE NOT NULL,
-	password VARCHAR(255) NOT NULL,
-	
-)
+	password VARCHAR(255) NOT NULL
+);
 
-CREATE TABLE IF NOT EXISTS PERSONALITY (
+CREATE TABLE IF NOT EXISTS personality (
 	id SERIAL PRIMARY KEY,
-	FOREIGN KEY (user_id) REFERENCES users(id)
+	user_id INT NOT NULL,
+	FOREIGN KEY (user_id) REFERENCES users(id),
 	openness DECIMAL(10,2) NOT NULL DEFAULT 50.0,
 	extraversion DECIMAL(10,2) NOT NULL DEFAULT 50.0,
 	conscientiousness DECIMAL(10,2) NOT NULL DEFAULT 50.0,
-	neuroticism DECIMAL(10, 2) NOT NULL DEFAULT 50.0,
-	agreeableness DECIMAL(10,2) NOT NULL DEFAULT 50.0,
+	neuroticism DECIMAL(10,2) NOT NULL DEFAULT 50.0,
+	agreeableness DECIMAL(10,2) NOT NULL DEFAULT 50.0
+);
 
-)
-
-CREATE TABLE IF NOT EXISTS activity(
+CREATE TABLE IF NOT EXISTS activity (
 	id SERIAL PRIMARY KEY,
 	name VARCHAR(255) NOT NULL,
 	title TEXT NOT NULL UNIQUE,
 	price FLOAT NOT NULL,
 	address VARCHAR(255),
-	rating NUMERIC ,
+	rating NUMERIC,
 	country VARCHAR(255),
-	imageURL: string,
-	)
+	imageURL VARCHAR(255)
+);
 
-CREATE TABLE IF NOT EXISTS itinerary(
+CREATE TABLE IF NOT EXISTS itinerary (
 	id SERIAL PRIMARY KEY,
 	user_id INT,
 	title TEXT,
 	description TEXT,
 	start_date DATE,
 	end_date DATE,
+	FOREIGN KEY (user_id) REFERENCES users(id)
+);
 
-)
-
-CREATE TABLE IF NOT EXISTS itinerary_activity(
-	itineraryid INT NOT NULL REFERENCES itineraries(id) ON DELETE CASCADE,
-	activityid INT NOT NULL REFERENCES activities(id) ON DELETE CASCADE,
-)
-
-
+CREATE TABLE IF NOT EXISTS itinerary_activity (
+	itinerary_id INT NOT NULL REFERENCES itinerary(id) ON DELETE CASCADE,
+	activity_id INT NOT NULL REFERENCES activity(id) ON DELETE CASCADE
+);

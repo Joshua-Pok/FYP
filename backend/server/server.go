@@ -20,26 +20,25 @@ func New(cfg config.ServerConfig, db *sql.DB) *Server {
 	}
 }
 
-// TODO : FIX THIS SHIT
 func (s *Server) Start() error {
 	userRepo := repository.NewUserRepository(s.db)
 	userHandler := handlers.NewUserHandler(userRepo)
 
 	http.HandleFunc("/users", s.handleUsers(userHandler))
+
 	addr := ":" + s.config.Port
 	return http.ListenAndServe(addr, nil)
-
 }
 
 func (s *Server) handleUsers(handler *handlers.UserHandler) http.HandlerFunc {
-	return func(w http.ResponseWriter, r http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
 			handler.GetUser(w, r)
 		case http.MethodPost:
 			handler.CreateUser(w, r)
 		default:
-			http.Error(w, "Method not available", http.statusMethodNotAllowed)
+			http.Error(w, "Method not available", http.StatusMethodNotAllowed)
 		}
 	}
 }
