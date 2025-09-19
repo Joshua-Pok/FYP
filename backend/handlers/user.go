@@ -2,11 +2,10 @@ package handlers
 
 import (
 	"encoding/json"
-	"net/http"
-	"strconv"
-
 	"github.com/Joshua-Pok/FYP-backend/models"
 	"github.com/Joshua-Pok/FYP-backend/repository"
+	"net/http"
+	"strconv"
 )
 
 type UserHandler struct {

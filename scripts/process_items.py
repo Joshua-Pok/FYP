@@ -23,7 +23,7 @@ def process_items_csv(input_file, output_file, activity_columns=range(20,31)):
             "Timestamp": "",
             "Labels": activity_name.replace(" ", "_").replace("/", "_").lower(),
             "Comment": f"Activity: {activity_name}"
-        }
+       }
 
         items_data.append(item_entry)
 

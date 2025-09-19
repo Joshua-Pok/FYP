@@ -8,7 +8,7 @@ type Config struct {
 }
 
 type ServerConfig struct {
-	port string
+	Port string
 }
 
 type DatabaseConfig struct {
@@ -21,9 +21,9 @@ type DatabaseConfig struct {
 }
 
 func Load() *Config {
-	return &Config{
+	cfg := &Config{
 		Server: ServerConfig{
-			port: getEnv("PORT", "8080"),
+			Port: getEnv("PORT", "8080"),
 		},
 
 		Database: DatabaseConfig{
@@ -34,6 +34,10 @@ func Load() *Config {
 			DBName:   getEnv("DB_NAME", "postgres"),
 		},
 	}
+
+	cfg.Database.DBURL = " host=" + cfg.Database.Host + " port=" + cfg.Database.Port + " user=" + cfg.Database.User + " password=" + cfg.Database.Password + " dbname=" + cfg.Database.DBName + " sslmode=disable"
+
+	return cfg
 }
 
 func getEnv(key, defaultValue string) string {

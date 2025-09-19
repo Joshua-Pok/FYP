@@ -1,16 +1,16 @@
 import { useState } from "react";
 import { SegmentedButtons } from "react-native-paper";
-import { SafeAreaView, StyleSheet } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Topbar() {
   const [value, setValue] = useState("");
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView>
       <SegmentedButtons
         value={value}
         onValueChange={setValue}
-        buttons={[
+        buttons={
           { value: "Popular", label: "Popular" },
           { value: "for-me", label: "For Me" },
           { value: "random", label: "randomassshit" },
@@ -18,13 +18,8 @@ export default function Topbar() {
       ></SegmentedButtons>
     </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  container: {
-    width: "100%",
-    flex: 1,
-    alignItems: "center",
-    margin: 0,
-  },
-});
+	container: {}
+})
