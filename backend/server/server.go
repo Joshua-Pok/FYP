@@ -2,10 +2,12 @@ package server
 
 import (
 	"database/sql"
+	"log"
+	"net/http"
+
 	"github.com/Joshua-Pok/FYP-backend/config"
 	"github.com/Joshua-Pok/FYP-backend/handlers"
 	"github.com/Joshua-Pok/FYP-backend/repository"
-	"net/http"
 )
 
 type Server struct {
@@ -27,6 +29,7 @@ func (s *Server) Start() error {
 	http.HandleFunc("/users", s.handleUsers(userHandler))
 
 	addr := ":" + s.config.Port
+	log.Println("Server started successfully")
 	return http.ListenAndServe(addr, nil)
 }
 
