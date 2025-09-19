@@ -29,7 +29,7 @@ func (r *UserRepository) CreateUser(user *models.User) error {
 	return r.db.QueryRow(query, user.Name, user.Email).Scan(&user.ID)
 }
 
-func GetAllUsers(r *UserRepository) ([]models.User, error) {
+func (r *UserRepository) GetAllUsers() ([]models.User, error) {
 	query := `SELECT id, name, email FROM users`
 	rows, err := r.db.Query(query)
 	if err != nil {

@@ -1,23 +1,23 @@
 package main
 
 import (
-	"database/sql"
-	"github.com/Joshua-Pok/FYP-backend/config"
-	"github.com/Joshua-Pok/FYP-backend/server"
 	"log"
+
+	"github.com/Joshua-Pok/FYP-backend/config"
+	"github.com/Joshua-Pok/FYP-backend/database"
+	"github.com/Joshua-Pok/FYP-backend/server"
 )
 
 func main() {
 	cfg := config.Load()
 
-	db, err := sql.Open("postgres", cfg.Database.DBURL)
+	// Use your database.ConnectDB helper
+	db, err := database.ConnectDB(cfg.Database)
 	if err != nil {
 		log.Fatal("Failed to connect to database: ", err)
 	}
+	defer db.Close()
 
-	defer db.Close() //only close db when main exits
-
-	server := server.New(cfg.Server, db)
-	log.Fatal(server.Start())
-
+	srv := server.New(cfg.Server, db)
+	log.Fatal(srv.Start())
 }

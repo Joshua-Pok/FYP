@@ -8,7 +8,7 @@ type Config struct {
 }
 
 type ServerConfig struct {
-	port string
+	Port string
 }
 
 type DatabaseConfig struct {
@@ -23,7 +23,7 @@ type DatabaseConfig struct {
 func Load() *Config {
 	cfg := &Config{
 		Server: ServerConfig{
-			port: getEnv("PORT", "8080"),
+			Port: getEnv("PORT", "8080"),
 		},
 
 		Database: DatabaseConfig{
@@ -35,7 +35,7 @@ func Load() *Config {
 		},
 	}
 
-	cfg.Database.DBURL = "host=" + cfg.Database.Host + "port=" + cfg.Database.Port + "user=" + cfg.Database.User + "password=" + cfg.Database.Password + "dbname=" + cfg.Database.DBName + "sslmode=disable"
+	cfg.Database.DBURL = " host=" + cfg.Database.Host + " port=" + cfg.Database.Port + " user=" + cfg.Database.User + " password=" + cfg.Database.Password + " dbname=" + cfg.Database.DBName + " sslmode=disable"
 
 	return cfg
 }
