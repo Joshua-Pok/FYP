@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { BottomNavigation } from "react-native-paper";
 import { StyleSheet, View } from "react-native";
 export default function Navbar() {
   const HomeRoute = () => <View style={styles.content}></View>;
