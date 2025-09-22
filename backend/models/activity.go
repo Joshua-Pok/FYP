@@ -2,7 +2,7 @@ package models
 
 type Activity struct {
 	ID      int    `json:"id" db:"id"`
-	country string `json:"country" db:"country"`
-	address string `json:"address" db:"address"`
-	price   int    `json:"price" db:"price"`
+	Country string `json:"country" db:"country"`
+	Address string `json:"address" db:"address"`
+	Price   int    `json:"price" db:"price"`
 }
