@@ -6,7 +6,6 @@ import (
 
 	"github.com/Joshua-Pok/FYP-backend/handlers"
 	"github.com/Joshua-Pok/FYP-backend/models"
-	"github.com/Joshua-Pok/FYP-backend/repository"
 )
 
 type MockUserRepository struct {
