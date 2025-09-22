@@ -14,7 +14,6 @@ func NewItineraryRepository(db *sql.DB) *ItineraryRepository {
 	return &ItineraryRepository{db: db}
 }
 
-// TODO : create itinerary need fixing
 func (r *ItineraryRepository) CreateItinerary(userId int, activities []models.Activity) (models.Itinerary, error) {
 
 	var itinerary models.Itinerary
@@ -32,12 +31,12 @@ func (r *ItineraryRepository) CreateItinerary(userId int, activities []models.Ac
 	}()
 
 	query := `INSERT INTO itinerary (user_id) VALUES ($1) RETURNING id`
-	err = tx.QueryRow(query, userId).Scan(&itinerary.ID)
+	err = tx.QueryRow(query, userId).Scan(&itinerary.Id)
 	if err != nil {
 		return itinerary, err
 	}
-	itinerary.UserID = userId
-	itinerary.ACtivities = activities
+	itinerary.User_id = userId
+	itinerary.Activities = activities
 
 	stmt, err := tx.Prepare(`INSERT INTO itinerary_activity(itinerary_id, activity_id) VALUES ($1, $2)`)
 	if err != nil {
@@ -46,7 +45,7 @@ func (r *ItineraryRepository) CreateItinerary(userId int, activities []models.Ac
 	defer stmt.Close()
 
 	for _, activity := range activities {
-		if _, err := stmt.Exec(itinerary.ID, activity.ID); err != nil {
+		if _, err := stmt.Exec(itinerary.Id, activity.ID); err != nil {
 			return itinerary, err
 		}
 	}
@@ -77,4 +76,29 @@ func (r *ItineraryRepository) GetItinerariesByUser(userId int) ([]models.Itinera
 	}
 
 	return itineraries, nil
+}
+
+func (r *ItineraryRepository) ModifyItinerary(id int, activities []models.Activity) (models.Itinerary, error) {
+	var itinerary models.Itinerary
+
+	tx, err := r.db.Begin()
+	if err != nil {
+		return itinerary, err
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		} else {
+			tx.Commit()
+		}
+	}()
+
+	query := `UPDATE itineraries SET title = $1, description = $2, start_date = $3, end_date = $4 WHERE id = $5
+RETURNING id, user_id, title, description, start_date, end_date
+	`
+
+	err := tx.QueryRow(query, title, description, startDate, endDate)
+	if err != nil {
+		return itinerary, err
+	}
 }
