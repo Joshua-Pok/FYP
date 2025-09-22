@@ -2,7 +2,6 @@ package repository
 
 import (
 	"database/sql"
-
 	"github.com/Joshua-Pok/FYP-backend/models"
 )
 
@@ -25,8 +24,8 @@ func (r *UserRepository) GetUserById(id int) (*models.User, error) {
 }
 
 func (r *UserRepository) CreateUser(user *models.User) error {
-	query := "INSERT INTO users (name, email) VALUES ($1, $2) RETURNING id"
-	return r.db.QueryRow(query, user.Name, user.Email).Scan(&user.ID)
+	query := "INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING id"
+	return r.db.QueryRow(query, user.Name, user.Email, user.Password).Scan(&user.ID)
 }
 
 func (r *UserRepository) GetAllUsers() ([]models.User, error) {

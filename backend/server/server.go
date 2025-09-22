@@ -29,7 +29,7 @@ func (s *Server) Start() error {
 	http.HandleFunc("/users", s.handleUsers(userHandler))
 
 	addr := ":" + s.config.Port
-	log.Println("Server started successfully")
+	log.Println("Server started successfully", s.config.Port)
 	return http.ListenAndServe(addr, nil)
 }
 

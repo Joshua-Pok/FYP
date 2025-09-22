@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"github.com/Joshua-Pok/FYP-backend/auth"
 	"github.com/Joshua-Pok/FYP-backend/models"
 	"github.com/Joshua-Pok/FYP-backend/repository"
 	"net/http"
@@ -10,6 +11,13 @@ import (
 
 type UserHandler struct {
 	userRepo repository.UserRepositoryInterface
+}
+
+type CreateUserResponse struct {
+	ID    int    `json:"id"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
+	Token string `json:"token"`
 }
 
 func NewUserHandler(userRepo repository.UserRepositoryInterface) *UserHandler {
@@ -45,14 +53,34 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	hashedPassword, err := auth.HashPassword(user.Password)
+	if err != nil {
+		http.Error(w, "Failed to hash user password", http.StatusInternalServerError)
+		return
+	}
+	user.Password = hashedPassword
+
+	token, err := auth.CreateToken(user.Email)
+	if err != nil {
+		http.Error(w, "Failed to create token", http.StatusInternalServerError)
+		return
+	}
+
 	if err := h.userRepo.CreateUser(&user); err != nil {
 		http.Error(w, "Failed to create user", http.StatusInternalServerError)
 		return
 	}
 
+	response := CreateUserResponse{
+		ID:    user.ID,
+		Name:  user.Name,
+		Email: user.Email,
+		Token: token,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(user)
+	json.NewEncoder(w).Encode(response)
 }
 
 func (h *UserHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
