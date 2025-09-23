@@ -26,12 +26,15 @@ func (s *Server) Start() error {
 	userRepo := repository.NewUserRepository(s.db)
 	personalityRepo := repository.NewPersonalityRepository(s.db)
 	itineraryRepo := repository.NewItineraryRepository(s.db)
+	activityRepo := repository.NewActivityRepository(s.db)
+	activityHandler := handlers.NewActivityhandler(*activityRepo)
 	userHandler := handlers.NewUserHandler(userRepo)
 	itineraryHandler := handlers.NewItineraryHandler(*itineraryRepo)
 	personalityHandler := handlers.NewPersonalityHandler(personalityRepo)
 	http.HandleFunc("/users", s.handleUsers(userHandler))
 	http.HandleFunc("/personality", s.handlePersonality(personalityHandler))
 	http.HandleFunc("/itinerary", s.handleItinerary(itineraryHandler))
+	http.HandleFunc("/activity", s.handleActivity(activityHandler))
 
 	addr := ":" + s.config.Port
 	log.Println("Server started successfully", s.config.Port)
@@ -74,6 +77,19 @@ func (s *Server) handleItinerary(handler *handlers.ItineraryHandler) http.Handle
 		default:
 			http.Error(w, "Method Not available", http.StatusInternalServerError)
 
+		}
+	}
+}
+
+func (s *Server) handleActivity(handler *handlers.ActivityHandler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPost:
+			handler.CreateActivity(w, r)
+		case http.MethodGet:
+			handler.GetActivitiesByItinerary(w, r)
+		default:
+			http.Error(w, "Method Not available", http.StatusInternalServerError)
 		}
 	}
 }
