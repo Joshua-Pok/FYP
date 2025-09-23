@@ -26,11 +26,13 @@ func New(cfg config.Config, db *sql.DB) *Server {
 
 func (s *Server) Start() error {
 	minioService := service.NewMinIOService(s.config.MinIO.Endpoint, s.config.MinIO.AccessKey, s.config.MinIO.Secret, s.config.MinIO.BucketName, false)
+	gorseService := service.NewGorseService(s.config.Gorse.URL)
+	cacheService := service.NewCacheService(s.config.Cache.Addr, s.config.Cache.Password, s.config.Cache.Db)
 	userRepo := repository.NewUserRepository(s.db)
 	personalityRepo := repository.NewPersonalityRepository(s.db)
 	itineraryRepo := repository.NewItineraryRepository(s.db)
 	activityRepo := repository.NewActivityRepository(s.db)
-	activityHandler := handlers.NewActivityhandler(*activityRepo, minioService)
+	activityHandler := handlers.NewActivityhandler(*activityRepo, minioService, gorseService, cacheService)
 	userHandler := handlers.NewUserHandler(userRepo)
 	itineraryHandler := handlers.NewItineraryHandler(*itineraryRepo)
 	personalityHandler := handlers.NewPersonalityHandler(personalityRepo)

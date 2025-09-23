@@ -27,8 +27,8 @@ type CreateActivityRequest struct {
 	CountryID int    `json:"countryid"`
 }
 
-func NewActivityhandler(activityRepo repository.ActivityRepository, minioService *service.MinIOService) *ActivityHandler {
-	return &ActivityHandler{activityRepo: activityRepo, minioService: minioService}
+func NewActivityhandler(activityRepo repository.ActivityRepository, minioService *service.MinIOService, gorseService *service.GorseService, cacheService *service.CacheService) *ActivityHandler {
+	return &ActivityHandler{activityRepo: activityRepo, minioService: minioService, gorseService: gorseService, cacheService: cacheService}
 }
 
 func (h *ActivityHandler) CreateActivity(w http.ResponseWriter, r *http.Request) {
