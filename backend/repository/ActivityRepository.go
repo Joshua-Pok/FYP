@@ -56,6 +56,29 @@ func (r *ActivityRepository) GetActivityById(activityID int) (*models.Activity, 
 	return activity, nil
 }
 
+func (r *ActivityRepository) GetActivitiesByIds(ids []string) ([]models.Activity, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+
+	query := `SELECT id, name, title, price, address, imageurl, country_id FROM activity WHERE id = ANY($1)`
+	rows, err := r.db.Query(query, pg.Array(ids))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var activities []models.Activity
+	for rows.Next() {
+		var a models.Activity
+		if err := rows.Scan(&a.ID, &a.Name, &a.Title, &a.Price, &a.Address, &a.ImageURL, &a.CountryID); err != nil {
+			return nil, err
+		}
+		activities = append(activities, a)
+	}
+	return activities, nil
+}
+
 func (r *ActivityRepository) GetActivitiesByItinerary(itineraryID int) ([]models.Activity, error) {
 
 	query := `
