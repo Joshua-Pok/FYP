@@ -2,12 +2,11 @@ package handlers
 
 import (
 	"encoding/json"
+	"github.com/Joshua-Pok/FYP-backend/models"
+	"github.com/Joshua-Pok/FYP-backend/repository"
 	"net/http"
 	"strconv"
 	"time"
-
-	"github.com/Joshua-Pok/FYP-backend/models"
-	"github.com/Joshua-Pok/FYP-backend/repository"
 )
 
 type ItineraryHandler struct {

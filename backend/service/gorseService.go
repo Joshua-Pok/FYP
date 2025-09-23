@@ -1,6 +1,7 @@
 package service
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -60,4 +61,58 @@ func (g *GorseService) GetPopularActivities(limit int) ([]string, error) {
 	}
 
 	return ids, nil
+}
+
+func (g *GorseService) AddUser(userId string, labels map[string]string) error {
+	payload := map[string]any{
+		"user_id": userId,
+		"labels":  labels,
+	}
+	jsonBody, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	url := fmt.Sprintf("%s/api/user", g.BaseURL)
+	resp, err := g.Client.Post(url, "application/json", bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return fmt.Errorf("failed to add user to gorse: %w", err)
+
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Gorse Returned status %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
+func (g *GorseService) UpdateUserLabels(userId string, labels map[string]string) error {
+	payload := map[string]any{
+		"labels": labels,
+	}
+
+	jsonBody, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	url := fmt.Sprintf("%s/api/user/%s", g.BaseURL, userId)
+	req, err := http.NewRequest(http.MethodPut, url, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := g.Client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to update user labels in Gorse: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Gorse returned status %d", resp.StatusCode)
+	}
+	return nil
 }

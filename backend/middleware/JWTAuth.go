@@ -1,10 +1,9 @@
 package middleware
 
 import (
+	"github.com/Joshua-Pok/FYP-backend/auth"
 	"net/http"
 	"strings"
-
-	"github.com/Joshua-Pok/FYP-backend/auth"
 )
 
 func JWTAuth(next http.Handler) http.Handler {

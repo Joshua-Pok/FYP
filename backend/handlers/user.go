@@ -2,15 +2,19 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
+	"net/http"
+	"strconv"
+
 	"github.com/Joshua-Pok/FYP-backend/auth"
 	"github.com/Joshua-Pok/FYP-backend/models"
 	"github.com/Joshua-Pok/FYP-backend/repository"
-	"net/http"
-	"strconv"
+	"github.com/Joshua-Pok/FYP-backend/service"
 )
 
 type UserHandler struct {
-	userRepo repository.UserRepositoryInterface
+	userRepo     repository.UserRepositoryInterface
+	gorseService *service.GorseService
 }
 
 type CreateUserResponse struct {
@@ -69,6 +73,14 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	if err := h.userRepo.CreateUser(&user); err != nil {
 		http.Error(w, "Failed to create user", http.StatusInternalServerError)
 		return
+	}
+
+	labels := map[string]string{
+		"personality": user.Personality,
+	}
+
+	if err := h.gorseService.AddUser(strconv.Itoa(user.ID), labels); err != nil {
+		log.Printf("warning: failed to add user to gorse: %v", err)
 	}
 
 	response := CreateUserResponse{
