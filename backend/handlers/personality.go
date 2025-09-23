@@ -2,9 +2,11 @@ package handlers
 
 import (
 	"encoding/json"
+	"net/http"
+	"strconv"
+
 	"github.com/Joshua-Pok/FYP-backend/models"
 	"github.com/Joshua-Pok/FYP-backend/repository"
-	"net/http"
 )
 
 type PersonalityHandler struct {
@@ -34,4 +36,25 @@ func (h *PersonalityHandler) CreatePersonality(w http.ResponseWriter, r *http.Re
 		http.Error(w, "failed to encode response", http.StatusInternalServerError)
 	}
 
+}
+
+func (h *PersonalityHandler) GetPersonalityByUserId(w http.ResponseWriter, r *http.Request) {
+	userIDstr := r.URL.Query().Get("user_id")
+
+	if userIDstr == "" {
+		http.Error(w, "Missing user id", http.StatusBadRequest)
+		return
+	}
+	userID, err := strconv.Atoi(userIDstr)
+	if err != nil {
+		http.Error(w, "missing user id", http.StatusBadRequest)
+		return
+	}
+	personality, err := h.personalityRepo.GetPersonalityByUser(userID)
+	if err != nil {
+		http.Error(w, "Personality not found", http.StatusNotFound)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(personality)
 }

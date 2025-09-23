@@ -54,6 +54,8 @@ func (s *Server) handlePersonality(handler *handlers.PersonalityHandler) http.Ha
 		switch r.Method {
 		case http.MethodPost:
 			handler.CreatePersonality(w, r)
+		case http.MethodGet:
+			handler.GetPersonalityByUserId(w, r)
 		default:
 			http.Error(w, "Method Not available", http.StatusInternalServerError)
 		}
