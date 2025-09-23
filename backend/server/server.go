@@ -7,6 +7,7 @@ import (
 
 	"github.com/Joshua-Pok/FYP-backend/config"
 	"github.com/Joshua-Pok/FYP-backend/handlers"
+	"github.com/Joshua-Pok/FYP-backend/middleware"
 	"github.com/Joshua-Pok/FYP-backend/repository"
 )
 
@@ -31,7 +32,7 @@ func (s *Server) Start() error {
 	userHandler := handlers.NewUserHandler(userRepo)
 	itineraryHandler := handlers.NewItineraryHandler(*itineraryRepo)
 	personalityHandler := handlers.NewPersonalityHandler(personalityRepo)
-	http.HandleFunc("/users", s.handleUsers(userHandler))
+	http.Handle("/users", middleware.JWTAuth(s.handleUsers(userHandler)))
 	http.HandleFunc("/personality", s.handlePersonality(personalityHandler))
 	http.HandleFunc("/itinerary", s.handleItinerary(itineraryHandler))
 	http.HandleFunc("/activity", s.handleActivity(activityHandler))

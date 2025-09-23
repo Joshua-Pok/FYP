@@ -2,8 +2,8 @@ package repository
 
 import (
 	"database/sql"
-
 	"github.com/Joshua-Pok/FYP-backend/models"
+	"github.com/lib/pq"
 )
 
 type ActivityRepository struct {
@@ -62,7 +62,7 @@ func (r *ActivityRepository) GetActivitiesByIds(ids []string) ([]models.Activity
 	}
 
 	query := `SELECT id, name, title, price, address, imageurl, country_id FROM activity WHERE id = ANY($1)`
-	rows, err := r.db.Query(query, pg.Array(ids))
+	rows, err := r.db.Query(query, pq.Array(ids))
 	if err != nil {
 		return nil, err
 	}
