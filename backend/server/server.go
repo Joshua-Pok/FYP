@@ -25,11 +25,13 @@ func New(cfg config.ServerConfig, db *sql.DB) *Server {
 func (s *Server) Start() error {
 	userRepo := repository.NewUserRepository(s.db)
 	personalityRepo := repository.NewPersonalityRepository(s.db)
+	itineraryRepo := repository.NewItineraryRepository(s.db)
 	userHandler := handlers.NewUserHandler(userRepo)
-
+	itineraryHandler := handlers.NewItineraryHandler(*itineraryRepo)
 	personalityHandler := handlers.NewPersonalityHandler(personalityRepo)
 	http.HandleFunc("/users", s.handleUsers(userHandler))
 	http.HandleFunc("/personality", s.handlePersonality(personalityHandler))
+	http.HandleFunc("/itinerary", s.handleItinerary(itineraryHandler))
 
 	addr := ":" + s.config.Port
 	log.Println("Server started successfully", s.config.Port)
@@ -58,6 +60,20 @@ func (s *Server) handlePersonality(handler *handlers.PersonalityHandler) http.Ha
 			handler.GetPersonalityByUserId(w, r)
 		default:
 			http.Error(w, "Method Not available", http.StatusInternalServerError)
+		}
+	}
+}
+
+func (s *Server) handleItinerary(handler *handlers.ItineraryHandler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPost:
+			handler.CreateItinerary(w, r)
+		case http.MethodGet:
+			handler.GetItinerariesByUser(w, r)
+		default:
+			http.Error(w, "Method Not available", http.StatusInternalServerError)
+
 		}
 	}
 }

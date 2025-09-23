@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"time"
 
 	"github.com/Joshua-Pok/FYP-backend/models"
 )
@@ -14,7 +15,7 @@ func NewItineraryRepository(db *sql.DB) *ItineraryRepository {
 	return &ItineraryRepository{db: db}
 }
 
-func (r *ItineraryRepository) CreateItinerary(userId int, activities []models.Activity) (models.Itinerary, error) {
+func (r *ItineraryRepository) CreateItinerary(userId int, title, description string, startDate, endDate time.Time, activities []models.Activity) (models.Itinerary, error) {
 
 	var itinerary models.Itinerary
 
@@ -30,12 +31,16 @@ func (r *ItineraryRepository) CreateItinerary(userId int, activities []models.Ac
 		}
 	}()
 
-	query := `INSERT INTO itinerary (user_id) VALUES ($1) RETURNING id`
-	err = tx.QueryRow(query, userId).Scan(&itinerary.Id)
+	query := `INSERT INTO itinerary (user_id, title, description, start_date, end_date) VALUES ($1, $2, $3, $4, $5) RETURNING id`
+	err = tx.QueryRow(query, userId, title, description, startDate, endDate).Scan(&itinerary.Id)
 	if err != nil {
 		return itinerary, err
 	}
 	itinerary.User_id = userId
+	itinerary.Title = title
+	itinerary.Description = description
+	itinerary.Start_date = startDate
+	itinerary.End_date = endDate
 	itinerary.Activities = activities
 
 	stmt, err := tx.Prepare(`INSERT INTO itinerary_activity(itinerary_id, activity_id) VALUES ($1, $2)`)
@@ -54,7 +59,7 @@ func (r *ItineraryRepository) CreateItinerary(userId int, activities []models.Ac
 }
 
 func (r *ItineraryRepository) GetItinerariesByUser(userId int) ([]models.Itinerary, error) {
-	query := `SELECT id, activities FROM itineraries WHERE user_id = $1`
+	query := `SELECT id, title, description, start_date, end_date FROM itinerary WHERE user_id = $1`
 
 	rows, err := r.db.Query(query, userId)
 	if err != nil {
