@@ -78,27 +78,27 @@ func (r *ItineraryRepository) GetItinerariesByUser(userId int) ([]models.Itinera
 	return itineraries, nil
 }
 
-func (r *ItineraryRepository) ModifyItinerary(id int, activities []models.Activity) (models.Itinerary, error) {
-	var itinerary models.Itinerary
-
-	tx, err := r.db.Begin()
-	if err != nil {
-		return itinerary, err
-	}
-	defer func() {
-		if err != nil {
-			tx.Rollback()
-		} else {
-			tx.Commit()
-		}
-	}()
-
-	query := `UPDATE itineraries SET title = $1, description = $2, start_date = $3, end_date = $4 WHERE id = $5
-RETURNING id, user_id, title, description, start_date, end_date
-	`
-
-	err := tx.QueryRow(query, title, description, startDate, endDate)
-	if err != nil {
-		return itinerary, err
-	}
-}
+// func (r *ItineraryRepository) ModifyItinerary(id int, title string, description string, startDate string, endDate string, activities []models.Activity) (models.Itinerary, error) {
+// 	var itinerary models.Itinerary
+//
+// 	tx, err := r.db.Begin()
+// 	if err != nil {
+// 		return itinerary, err
+// 	}
+// 	defer func() {
+// 		if err != nil {
+// 			tx.Rollback()
+// 		} else {
+// 			tx.Commit()
+// 		}
+// 	}()
+//
+// 	query := `UPDATE itineraries SET title = $1, description = $2, start_date = $3, end_date = $4 WHERE id = $5
+// RETURNING id, user_id, title, description, start_date, end_date
+// 	`
+//
+// 	err = tx.QueryRow(query, title, description, startDate, endDate, id)
+// 	if err != nil {
+// 		return itinerary, err
+// 	}
+// }

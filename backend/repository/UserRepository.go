@@ -15,8 +15,8 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 
 func (r *UserRepository) GetUserById(id int) (*models.User, error) {
 	user := &models.User{}
-	query := `SELECT id, name, email FROM users WHERE id = $1`
-	err := r.db.QueryRow(query, id).Scan(&user.ID, &user.Name, &user.Email)
+	query := `SELECT id, username, name, email FROM users WHERE id = $1`
+	err := r.db.QueryRow(query, id).Scan(&user.ID, &user.UserName, &user.Name, &user.Email)
 	if err != nil {
 		return nil, err
 	}
@@ -24,12 +24,12 @@ func (r *UserRepository) GetUserById(id int) (*models.User, error) {
 }
 
 func (r *UserRepository) CreateUser(user *models.User) error {
-	query := "INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING id"
-	return r.db.QueryRow(query, user.Name, user.Email, user.Password).Scan(&user.ID)
+	query := "INSERT INTO users (username, name, email, password) VALUES ($1, $2, $3, $4) RETURNING id"
+	return r.db.QueryRow(query, user.UserName, user.Name, user.Email, user.Password).Scan(&user.ID)
 }
 
 func (r *UserRepository) GetAllUsers() ([]models.User, error) {
-	query := `SELECT id, name, email FROM users`
+	query := `SELECT id, username, name, email FROM users`
 	rows, err := r.db.Query(query)
 	if err != nil {
 		return nil, err

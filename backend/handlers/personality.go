@@ -8,10 +8,10 @@ import (
 )
 
 type PersonalityHandler struct {
-	personalityRepo repository.PersonalityRepository
+	personalityRepo *repository.PersonalityRepository
 }
 
-func NewPersonalityHandler(personalityRepo repository.PersonalityRepository) *PersonalityHandler {
+func NewPersonalityHandler(personalityRepo *repository.PersonalityRepository) *PersonalityHandler {
 	return &PersonalityHandler{personalityRepo: personalityRepo}
 }
 

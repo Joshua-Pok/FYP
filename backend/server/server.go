@@ -24,9 +24,12 @@ func New(cfg config.ServerConfig, db *sql.DB) *Server {
 
 func (s *Server) Start() error {
 	userRepo := repository.NewUserRepository(s.db)
+	personalityRepo := repository.NewPersonalityRepository(s.db)
 	userHandler := handlers.NewUserHandler(userRepo)
 
+	personalityHandler := handlers.NewPersonalityHandler(personalityRepo)
 	http.HandleFunc("/users", s.handleUsers(userHandler))
+	http.HandleFunc("/personality", s.handlePersonality(personalityHandler))
 
 	addr := ":" + s.config.Port
 	log.Println("Server started successfully", s.config.Port)
@@ -42,6 +45,17 @@ func (s *Server) handleUsers(handler *handlers.UserHandler) http.HandlerFunc {
 			handler.CreateUser(w, r)
 		default:
 			http.Error(w, "Method not available", http.StatusMethodNotAllowed)
+		}
+	}
+}
+
+func (s *Server) handlePersonality(handler *handlers.PersonalityHandler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPost:
+			handler.CreatePersonality(w, r)
+		default:
+			http.Error(w, "Method Not available", http.StatusInternalServerError)
 		}
 	}
 }
