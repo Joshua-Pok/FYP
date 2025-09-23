@@ -6,10 +6,12 @@ import (
 	"strconv"
 
 	"github.com/Joshua-Pok/FYP-backend/repository"
+	"github.com/Joshua-Pok/FYP-backend/service"
 )
 
 type ActivityHandler struct {
 	activityRepo repository.ActivityRepository
+	minioService *service.MinIOService
 }
 
 type CreateActivityRequest struct {
@@ -21,8 +23,8 @@ type CreateActivityRequest struct {
 	CountryID int    `json:"countryid"`
 }
 
-func NewActivityhandler(activityRepo repository.ActivityRepository) *ActivityHandler {
-	return &ActivityHandler{activityRepo: activityRepo}
+func NewActivityhandler(activityRepo repository.ActivityRepository, minioService *service.MinIOService) *ActivityHandler {
+	return &ActivityHandler{activityRepo: activityRepo, minioService: minioService}
 }
 
 func (h *ActivityHandler) CreateActivity(w http.ResponseWriter, r *http.Request) {
@@ -69,4 +71,26 @@ func (h *ActivityHandler) GetActivitiesByItinerary(w http.ResponseWriter, r *htt
 		"itinerary":  itineraryID,
 		"activities": activities,
 	})
+}
+
+func (h *ActivityHandler) GetActivityById(w http.ResponseWriter, r *http.Request) {
+	activityIDstr := r.URL.Query().Get("activity_id")
+	if activityIDstr == "" {
+		http.Error(w, "missing id", http.StatusBadRequest)
+		return
+	}
+	activityID, err := strconv.Atoi(activityIDstr)
+	if err != nil {
+		http.Error(w, "failed to fetch activity", http.StatusInternalServerError)
+		return
+	}
+
+	activity, err := h.activityRepo.GetActivityById(activityID)
+	if err != nil {
+		http.Error(w, "Activity with that id does not exist", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(activity)
 }

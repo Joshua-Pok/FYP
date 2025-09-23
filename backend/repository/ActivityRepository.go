@@ -36,6 +36,26 @@ func (r *ActivityRepository) CreateActivity(name, title string, price int, addre
 
 }
 
+func (r *ActivityRepository) GetActivityById(activityID int) (*models.Activity, error) {
+	activity := &models.Activity{}
+	query := `SELECT name, title, price, address, imageurl, country_id FROM activity WHERE id + $1`
+
+	err := r.db.QueryRow(query, activityID).Scan(
+		&activity.ID,
+		&activity.Name,
+		&activity.Title,
+		&activity.Price,
+		&activity.Address,
+		&activity.ImageURL,
+		&activity.CountryID,
+	)
+	if err != nil {
+		return nil, err
+
+	}
+	return activity, nil
+}
+
 func (r *ActivityRepository) GetActivitiesByItinerary(itineraryID int) ([]models.Activity, error) {
 
 	query := `
