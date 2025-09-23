@@ -83,27 +83,56 @@ func (r *ItineraryRepository) GetItinerariesByUser(userId int) ([]models.Itinera
 	return itineraries, nil
 }
 
-// func (r *ItineraryRepository) ModifyItinerary(id int, title string, description string, startDate string, endDate string, activities []models.Activity) (models.Itinerary, error) {
-// 	var itinerary models.Itinerary
-//
-// 	tx, err := r.db.Begin()
-// 	if err != nil {
-// 		return itinerary, err
-// 	}
-// 	defer func() {
-// 		if err != nil {
-// 			tx.Rollback()
-// 		} else {
-// 			tx.Commit()
-// 		}
-// 	}()
-//
-// 	query := `UPDATE itineraries SET title = $1, description = $2, start_date = $3, end_date = $4 WHERE id = $5
-// RETURNING id, user_id, title, description, start_date, end_date
-// 	`
-//
-// 	err = tx.QueryRow(query, title, description, startDate, endDate, id)
-// 	if err != nil {
-// 		return itinerary, err
-// 	}
-// }
+func (r *ItineraryRepository) ModifyItinerary(id int, title string, description string, startDate string, endDate string, activities []models.Activity) (models.Itinerary, error) {
+	var itinerary models.Itinerary
+
+	tx, err := r.db.Begin()
+	if err != nil {
+		return itinerary, err
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		} else {
+			tx.Commit()
+		}
+	}()
+
+	query := `UPDATE itineraries SET title = $1, description = $2, start_date = $3, end_date = $4 WHERE id = $5
+RETURNING id, user_id, title, description, start_date, end_date
+	`
+
+	err = tx.QueryRow(query, title, description, startDate, endDate, id).Scan(
+		&itinerary.Id,
+		&itinerary.User_id,
+		&itinerary.Title,
+		&itinerary.Description,
+		&itinerary.Start_date,
+		&itinerary.End_date,
+	)
+	if err != nil {
+		return itinerary, err
+	}
+
+	// Update itinerary activities (optional: delete old ones first)
+	_, err = tx.Exec(`DELETE FROM itinerary_activity WHERE itinerary_id = $1`, id)
+	if err != nil {
+		return itinerary, err
+	}
+
+	stmt, err := tx.Prepare(`INSERT INTO itinerary_activity(itinerary_id, activity_id) VALUES ($1, $2)`)
+	if err != nil {
+		return itinerary, err
+	}
+	defer stmt.Close()
+
+	for _, activity := range activities {
+		if _, err := stmt.Exec(itinerary.Id, activity.ID); err != nil {
+			return itinerary, err
+		}
+	}
+	itinerary.Activities = activities
+
+	return itinerary, nil
+
+}

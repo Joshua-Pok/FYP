@@ -22,6 +22,15 @@ type CreateItineraryRequest struct {
 	Activities  []models.Activity `json:"activities"`
 }
 
+type ModifyItineraryRequest struct {
+	Id          int               `json:"id"`
+	Title       string            `json:"title"`
+	Description string            `json:"description"`
+	StartDate   string            `json:"startDate"`
+	EndDate     string            `json:"endDate"`
+	Activities  []models.Activity `json:"activities"`
+}
+
 func NewItineraryHandler(itineraryRepo repository.ItineraryRepository) *ItineraryHandler {
 	return &ItineraryHandler{itineraryRepo: itineraryRepo}
 }
@@ -77,4 +86,20 @@ func (h *ItineraryHandler) GetItinerariesByUser(w http.ResponseWriter, r *http.R
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(itineraries)
+}
+
+func (h *ItineraryHandler) ModifyItinerary(w http.ResponseWriter, r *http.Request) {
+	var req ModifyItineraryRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "invalid json format"})
+		return
+	}
+	itineraryIDstr := r.URL.Query().Get("itinerary_id")
+	itineraryID, err := strconv.Atoi(itineraryIDstr)
+	if err != nil {
+		http.Error(w, "Invalid user id", http.StatusBadRequest)
+		return
+	}
+	itinerary, err := h.itineraryRepo.ModifyItinerary(itineraryID, req.Title, req.Description, req.StartDate, req.EndDate)
 }
