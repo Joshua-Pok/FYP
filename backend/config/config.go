@@ -5,6 +5,7 @@ import "os"
 type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
+	MinIO    MinIOConfig
 }
 
 type ServerConfig struct {
@@ -20,6 +21,13 @@ type DatabaseConfig struct {
 	DBURL    string
 }
 
+type MinIOConfig struct {
+	Endpoint   string
+	AccessKey  string
+	Secret     string
+	BucketName string
+}
+
 func Load() *Config {
 	cfg := &Config{
 		Server: ServerConfig{
@@ -32,6 +40,13 @@ func Load() *Config {
 			User:     getEnv("DB_USER", "joshua"),
 			Password: getEnv("DB_PASSWORD", "joshua"),
 			DBName:   getEnv("DB_NAME", "postgres"),
+		},
+
+		MinIO: MinIOConfig{
+			Endpoint:   getEnv("MINIO_ENDPOINT", "localhost:9000"),
+			AccessKey:  getEnv("MINIO_ACCESS_KEY", "minio"),
+			Secret:     getEnv("MINIO_SECRET_KEY", ""),
+			BucketName: getEnv("MINIO_BUCKET", "joshua"),
 		},
 	}
 

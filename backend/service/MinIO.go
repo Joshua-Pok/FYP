@@ -12,6 +12,7 @@ import (
 type MinIOService struct {
 	Client     *minio.Client
 	BucketName string
+	Endpoint   string
 }
 
 func NewMinIOService(endpoint, accessKey, secretKey, BucketName string, useSSL bool) *MinIOService {

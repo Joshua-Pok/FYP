@@ -9,14 +9,15 @@ import (
 	"github.com/Joshua-Pok/FYP-backend/handlers"
 	"github.com/Joshua-Pok/FYP-backend/middleware"
 	"github.com/Joshua-Pok/FYP-backend/repository"
+	"github.com/Joshua-Pok/FYP-backend/service"
 )
 
 type Server struct {
-	config *config.ServerConfig
+	config *config.Config
 	db     *sql.DB
 }
 
-func New(cfg config.ServerConfig, db *sql.DB) *Server {
+func New(cfg config.Config, db *sql.DB) *Server {
 	return &Server{
 		config: &cfg,
 		db:     db,
@@ -24,11 +25,12 @@ func New(cfg config.ServerConfig, db *sql.DB) *Server {
 }
 
 func (s *Server) Start() error {
+	minioService := service.NewMinIOService(s.config.MinIO.Endpoint, s.config.MinIO.AccessKey, s.config.MinIO.Secret, s.config.MinIO.BucketName, false)
 	userRepo := repository.NewUserRepository(s.db)
 	personalityRepo := repository.NewPersonalityRepository(s.db)
 	itineraryRepo := repository.NewItineraryRepository(s.db)
 	activityRepo := repository.NewActivityRepository(s.db)
-	activityHandler := handlers.NewActivityhandler(*activityRepo)
+	activityHandler := handlers.NewActivityhandler(*activityRepo, minioService)
 	userHandler := handlers.NewUserHandler(userRepo)
 	itineraryHandler := handlers.NewItineraryHandler(*itineraryRepo)
 	personalityHandler := handlers.NewPersonalityHandler(personalityRepo)
@@ -37,8 +39,8 @@ func (s *Server) Start() error {
 	http.HandleFunc("/itinerary", s.handleItinerary(itineraryHandler))
 	http.HandleFunc("/activity", s.handleActivity(activityHandler))
 
-	addr := ":" + s.config.Port
-	log.Println("Server started successfully", s.config.Port)
+	addr := ":" + s.config.Server.Port
+	log.Println("Server started successfully", s.config.Server.Port)
 	return http.ListenAndServe(addr, nil)
 }
 
