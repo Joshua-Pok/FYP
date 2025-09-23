@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"time"
 
+	"github.com/Joshua-Pok/FYP-backend/models"
 	"github.com/Joshua-Pok/FYP-backend/repository"
 	"github.com/Joshua-Pok/FYP-backend/service"
 )
@@ -13,6 +15,7 @@ type ActivityHandler struct {
 	activityRepo repository.ActivityRepository
 	minioService *service.MinIOService
 	gorseService *service.GorseService
+	cacheService *service.CacheService
 }
 
 type CreateActivityRequest struct {
@@ -125,4 +128,48 @@ func (h *ActivityHandler) GetRecommendedActivities(w http.ResponseWriter, r *htt
 		"user_id":    userId,
 		"activities": activities,
 	})
+}
+
+func (h *ActivityHandler) GetPopularActivities(w http.ResponseWriter, r *http.Request) {
+	cacheKey := "popular_activities"
+	var activities []models.Activity
+
+	data, err := h.cacheService.Get(cacheKey)
+	if err == nil && len(data) > 0 {
+		if err := json.Unmarshal(data, &activities); err == nil {
+			//cache exists, can return
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success":    true,
+				"activities": activities,
+			})
+			return
+		}
+	}
+
+	ids, err := h.gorseService.GetPopularActivities(10)
+	if err != nil {
+		http.Error(w, "failed to get popular activities", http.StatusInternalServerError)
+		return
+	}
+	activities, err = h.activityRepo.GetActivitiesByIds(ids)
+	if err != nil {
+		http.Error(w, "Failed to get activities", http.StatusInternalServerError)
+		return
+	}
+
+	for i := range activities {
+		url := h.minioService.GetPublicURL(activities[i].ImageURL)
+		activities[i].ImageURL = url
+	}
+
+	cacheData, _ := json.Marshal(activities)
+	_ = h.cacheService.Set(cacheKey, cacheData, 5*time.Minute)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":    true,
+		"activities": activities,
+	})
+
 }
