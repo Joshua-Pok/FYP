@@ -87,6 +87,30 @@ func (g *GorseService) AddUser(username string) error {
 	return nil
 }
 
+func (g *GorseService) AddItem(itemID string, labels map[string]string) error {
+	data := map[string]interface{}{
+		"item_id": itemID,
+		"labels":  labels,
+	}
+
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return fmt.Errorf("failed to marshal item data: %w", err)
+	}
+
+	url := fmt.Sprintf("%s/api/item", g.BaseURL)
+	resp, err := g.Client.Post(url, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return fmt.Errorf("failed to add item: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Gorse return status %d", resp.StatusCode)
+	}
+	return nil
+}
+
 func (g *GorseService) UpdateUserLabels(userId string, labels map[string]string) error {
 	payload := map[string]any{
 		"labels": labels,
