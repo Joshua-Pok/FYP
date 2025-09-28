@@ -7,15 +7,17 @@ import (
 
 	"github.com/Joshua-Pok/FYP-backend/config"
 	"github.com/Joshua-Pok/FYP-backend/handlers"
+	"github.com/Joshua-Pok/FYP-backend/middleware"
 	"github.com/Joshua-Pok/FYP-backend/repository"
+	"github.com/Joshua-Pok/FYP-backend/service"
 )
 
 type Server struct {
-	config *config.ServerConfig
+	config *config.Config
 	db     *sql.DB
 }
 
-func New(cfg config.ServerConfig, db *sql.DB) *Server {
+func New(cfg config.Config, db *sql.DB) *Server {
 	return &Server{
 		config: &cfg,
 		db:     db,
@@ -23,13 +25,24 @@ func New(cfg config.ServerConfig, db *sql.DB) *Server {
 }
 
 func (s *Server) Start() error {
+	minioService := service.NewMinIOService(s.config.MinIO.Endpoint, s.config.MinIO.AccessKey, s.config.MinIO.Secret, s.config.MinIO.BucketName, false)
+	gorseService := service.NewGorseService(s.config.Gorse.URL)
+	cacheService := service.NewCacheService(s.config.Cache.Addr, s.config.Cache.Password, s.config.Cache.Db)
 	userRepo := repository.NewUserRepository(s.db)
+	personalityRepo := repository.NewPersonalityRepository(s.db)
+	itineraryRepo := repository.NewItineraryRepository(s.db)
+	activityRepo := repository.NewActivityRepository(s.db)
+	activityHandler := handlers.NewActivityhandler(*activityRepo, minioService, gorseService, cacheService)
 	userHandler := handlers.NewUserHandler(userRepo)
+	itineraryHandler := handlers.NewItineraryHandler(*itineraryRepo)
+	personalityHandler := handlers.NewPersonalityHandler(personalityRepo)
+	http.Handle("/users", middleware.JWTAuth(s.handleUsers(userHandler)))
+	http.HandleFunc("/personality", s.handlePersonality(personalityHandler))
+	http.HandleFunc("/itinerary", s.handleItinerary(itineraryHandler))
+	http.HandleFunc("/activity", s.handleActivity(activityHandler))
 
-	http.HandleFunc("/users", s.handleUsers(userHandler))
-
-	addr := ":" + s.config.Port
-	log.Println("Server started successfully")
+	addr := ":" + s.config.Server.Port
+	log.Println("Server started successfully", s.config.Server.Port)
 	return http.ListenAndServe(addr, nil)
 }
 
@@ -42,6 +55,46 @@ func (s *Server) handleUsers(handler *handlers.UserHandler) http.HandlerFunc {
 			handler.CreateUser(w, r)
 		default:
 			http.Error(w, "Method not available", http.StatusMethodNotAllowed)
+		}
+	}
+}
+
+func (s *Server) handlePersonality(handler *handlers.PersonalityHandler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPost:
+			handler.CreatePersonality(w, r)
+		case http.MethodGet:
+			handler.GetPersonalityByUserId(w, r)
+		default:
+			http.Error(w, "Method Not available", http.StatusInternalServerError)
+		}
+	}
+}
+
+func (s *Server) handleItinerary(handler *handlers.ItineraryHandler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPost:
+			handler.CreateItinerary(w, r)
+		case http.MethodGet:
+			handler.GetItinerariesByUser(w, r)
+		default:
+			http.Error(w, "Method Not available", http.StatusInternalServerError)
+
+		}
+	}
+}
+
+func (s *Server) handleActivity(handler *handlers.ActivityHandler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPost:
+			handler.CreateActivity(w, r)
+		case http.MethodGet:
+			handler.GetActivitiesByItinerary(w, r)
+		default:
+			http.Error(w, "Method Not available", http.StatusInternalServerError)
 		}
 	}
 }

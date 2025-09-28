@@ -1,10 +1,17 @@
 package config
 
-import "os"
+import (
+	"log"
+	"os"
+	"strconv"
+)
 
 type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
+	MinIO    MinIOConfig
+	Gorse    GorseConfig
+	Cache    CacheConfig
 }
 
 type ServerConfig struct {
@@ -20,7 +27,29 @@ type DatabaseConfig struct {
 	DBURL    string
 }
 
+type MinIOConfig struct {
+	Endpoint   string
+	AccessKey  string
+	Secret     string
+	BucketName string
+}
+
+type GorseConfig struct {
+	URL string
+}
+
+type CacheConfig struct {
+	Addr     string
+	Password string
+	Db       int
+}
+
 func Load() *Config {
+	dbNum, err := strconv.Atoi(getEnv("REDIS_DB", "0"))
+	if err != nil {
+		log.Fatalf("Invalid Redis DB value %v", err)
+	}
+
 	cfg := &Config{
 		Server: ServerConfig{
 			Port: getEnv("PORT", "8080"),
@@ -32,6 +61,23 @@ func Load() *Config {
 			User:     getEnv("DB_USER", "joshua"),
 			Password: getEnv("DB_PASSWORD", "joshua"),
 			DBName:   getEnv("DB_NAME", "postgres"),
+		},
+
+		MinIO: MinIOConfig{
+			Endpoint:   getEnv("MINIO_ENDPOINT", "localhost:9000"),
+			AccessKey:  getEnv("MINIO_ACCESS_KEY", "minio"),
+			Secret:     getEnv("MINIO_SECRET_KEY", ""),
+			BucketName: getEnv("MINIO_BUCKET", "joshua"),
+		},
+
+		Gorse: GorseConfig{
+			URL: getEnv("GORSE_URL", "localhost:8081"),
+		},
+
+		Cache: CacheConfig{
+			Addr:     getEnv("REDIS_ADDR", "localhost:6432"),
+			Password: getEnv("REDIS_PASSWORD", "localhost:6969"),
+			Db:       dbNum,
 		},
 	}
 

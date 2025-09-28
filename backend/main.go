@@ -18,6 +18,6 @@ func main() {
 	}
 	defer db.Close()
 
-	srv := server.New(cfg.Server, db)
+	srv := server.New(*cfg, db)
 	log.Fatal(srv.Start())
 }

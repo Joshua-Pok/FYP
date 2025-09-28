@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { DatePickerModal } from "react-native-paper-dates";
-import { StyleSheet, View } from "react-native";
-import { Button, FAB, Menu } from "react-native-paper";
+import { StyleSheet, View, ScrollView } from "react-native";
+import { Button, FAB, Menu, DataTable } from "react-native-paper";
 import ActivityCard from "@/components/ActivityCard";
 import { Dropdown } from "react-native-paper-dropdown";
 
@@ -46,6 +46,8 @@ export default function Createtrip() {
   };
   return (
     <>
+      <h1>Trip Name</h1>
+      <p>Trip Description</p>
       <Dropdown
         label="Country"
         mode={"outlined"}
@@ -54,7 +56,7 @@ export default function Createtrip() {
         value={country}
         onSelect={handleCountrySelect}
       ></Dropdown>
-      <View style={{ justifyContent: "center", flex: 1, alignItems: "center" }}>
+      <ScrollView contentContainerStyle={{ justifyContent: "center" }}>
         <Button onPress={() => setOpen(true)} uppercase={false} mode="outlined">
           Pick range
         </Button>
@@ -72,9 +74,35 @@ export default function Createtrip() {
             } as any)}
           />
         </View>
-      </View>
-      <View>
         <ActivityCard />
+        <DataTable>
+          <DataTable.Header>
+            <DataTable.Title>Dessert</DataTable.Title>
+            <DataTable.Title numeric>Calories</DataTable.Title>
+            <DataTable.Title numeric>Fat</DataTable.Title>
+          </DataTable.Header>
+
+          <DataTable.Row>
+            <DataTable.Cell>Frozen yogurt</DataTable.Cell>
+            <DataTable.Cell numeric>159</DataTable.Cell>
+            <DataTable.Cell numeric>6.0</DataTable.Cell>
+          </DataTable.Row>
+
+          <DataTable.Row>
+            <DataTable.Cell>Ice cream sandwich</DataTable.Cell>
+            <DataTable.Cell numeric>237</DataTable.Cell>
+            <DataTable.Cell numeric>8.0</DataTable.Cell>
+          </DataTable.Row>
+
+          <DataTable.Pagination
+            page={1}
+            numberOfPages={3}
+            onPageChange={(page) => {
+              console.log(page);
+            }}
+            label="1-2 of 6"
+          />
+        </DataTable>
         <View style={{ flex: 1 }}>
           <Menu
             visible={addActivityModalOpen}
@@ -85,7 +113,7 @@ export default function Createtrip() {
             <Menu.Item leadingIcon="redo" title="redo"></Menu.Item>
           </Menu>
         </View>
-      </View>
+      </ScrollView>
     </>
   );
 }
