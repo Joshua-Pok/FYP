@@ -71,7 +71,7 @@ func Load() *Config {
 		},
 
 		Gorse: GorseConfig{
-			URL: getEnv("GORSE_URL", "http://localhost:8080"),
+			URL: getEnv("GORSE_URL", "http://localhost:8088"),
 		},
 
 		Cache: CacheConfig{

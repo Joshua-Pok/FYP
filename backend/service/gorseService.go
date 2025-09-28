@@ -63,10 +63,9 @@ func (g *GorseService) GetPopularActivities(limit int) ([]string, error) {
 	return ids, nil
 }
 
-func (g *GorseService) AddUser(userId string, labels map[string]string) error {
+func (g *GorseService) AddUser(username string) error {
 	payload := map[string]any{
-		"user_id": userId,
-		"labels":  labels,
+		"UserId": username,
 	}
 	jsonBody, err := json.Marshal(payload)
 	if err != nil {

@@ -99,7 +99,7 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.gorseService.AddUser(strconv.Itoa(user.ID), map[string]string{}); err != nil {
+	if err := h.gorseService.AddUser(user.UserName); err != nil {
 		log.Printf("warning: failed to add user to gorse: %v", err)
 	}
 
