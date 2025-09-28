@@ -39,7 +39,7 @@ func (r *UserRepository) GetAllUsers() ([]models.User, error) {
 	var users []models.User
 	for rows.Next() {
 		var user models.User
-		if err := rows.Scan(&user.ID, &user.Name, &user.Email); err != nil {
+		if err := rows.Scan(&user.ID, &user.UserName, &user.Name, &user.Email); err != nil {
 			return nil, err
 		}
 		users = append(users, user)

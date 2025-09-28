@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 
+	"github.com/Joshua-Pok/FYP-backend/auth"
 	"github.com/Joshua-Pok/FYP-backend/config"
 	"github.com/Joshua-Pok/FYP-backend/database"
 	"github.com/Joshua-Pok/FYP-backend/server"
@@ -19,5 +20,6 @@ func main() {
 	defer db.Close()
 
 	srv := server.New(*cfg, db)
+	auth.GenerateTestToken("joshua")
 	log.Fatal(srv.Start())
 }

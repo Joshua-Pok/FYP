@@ -60,23 +60,23 @@ func Load() *Config {
 			Port:     getEnv("DB_PORT", "5432"),
 			User:     getEnv("DB_USER", "joshua"),
 			Password: getEnv("DB_PASSWORD", "joshua"),
-			DBName:   getEnv("DB_NAME", "postgres"),
+			DBName:   getEnv("DB_NAME", "appbackend"),
 		},
 
 		MinIO: MinIOConfig{
 			Endpoint:   getEnv("MINIO_ENDPOINT", "localhost:9000"),
-			AccessKey:  getEnv("MINIO_ACCESS_KEY", "minio"),
-			Secret:     getEnv("MINIO_SECRET_KEY", ""),
-			BucketName: getEnv("MINIO_BUCKET", "joshua"),
+			AccessKey:  getEnv("MINIO_ACCESS_KEY", "joshua1234"),
+			Secret:     getEnv("MINIO_SECRET_KEY", "joshua1234"),
+			BucketName: getEnv("MINIO_BUCKET", "my-bucket"),
 		},
 
 		Gorse: GorseConfig{
-			URL: getEnv("GORSE_URL", "localhost:8081"),
+			URL: getEnv("GORSE_URL", "http://localhost:8080"),
 		},
 
 		Cache: CacheConfig{
-			Addr:     getEnv("REDIS_ADDR", "localhost:6432"),
-			Password: getEnv("REDIS_PASSWORD", "localhost:6969"),
+			Addr:     getEnv("REDIS_ADDR", "localhost:6379"),
+			Password: getEnv("REDIS_PASSWORD", ""),
 			Db:       dbNum,
 		},
 	}

@@ -2,9 +2,12 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+	"reflect"
 	"strconv"
+	"strings"
 
 	"github.com/Joshua-Pok/FYP-backend/auth"
 	"github.com/Joshua-Pok/FYP-backend/models"
@@ -24,8 +27,29 @@ type CreateUserResponse struct {
 	Token string `json:"token"`
 }
 
-func NewUserHandler(userRepo repository.UserRepositoryInterface) *UserHandler {
-	return &UserHandler{userRepo: userRepo}
+func parsePersonalityString(s interface{}) string {
+	v := reflect.ValueOf(s)
+	t := reflect.TypeOf(s)
+
+	var parts []string
+
+	for i := 0; i < v.NumField(); i++ {
+		field := v.Field(i)
+		fieldType := t.Field(i)
+
+		if !field.CanInterface() {
+			continue
+		}
+
+		fieldValue := fmt.Sprintf("%v", field.Interface())
+
+		parts = append(parts, fmt.Sprintf("%s:%s", fieldType.Name, fieldValue))
+	}
+	return strings.Join(parts, " ")
+}
+
+func NewUserHandler(userRepo repository.UserRepositoryInterface, gorseService *service.GorseService) *UserHandler {
+	return &UserHandler{userRepo: userRepo, gorseService: gorseService}
 }
 
 func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
@@ -75,11 +99,7 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	labels := map[string]string{
-		"personality": user.Personality,
-	}
-
-	if err := h.gorseService.AddUser(strconv.Itoa(user.ID), labels); err != nil {
+	if err := h.gorseService.AddUser(strconv.Itoa(user.ID), map[string]string{}); err != nil {
 		log.Printf("warning: failed to add user to gorse: %v", err)
 	}
 

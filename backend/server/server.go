@@ -33,7 +33,7 @@ func (s *Server) Start() error {
 	itineraryRepo := repository.NewItineraryRepository(s.db)
 	activityRepo := repository.NewActivityRepository(s.db)
 	activityHandler := handlers.NewActivityhandler(*activityRepo, minioService, gorseService, cacheService)
-	userHandler := handlers.NewUserHandler(userRepo)
+	userHandler := handlers.NewUserHandler(userRepo, gorseService)
 	itineraryHandler := handlers.NewItineraryHandler(*itineraryRepo)
 	personalityHandler := handlers.NewPersonalityHandler(personalityRepo)
 	http.Handle("/users", middleware.JWTAuth(s.handleUsers(userHandler)))

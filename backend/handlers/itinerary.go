@@ -101,5 +101,14 @@ func (h *ItineraryHandler) ModifyItinerary(w http.ResponseWriter, r *http.Reques
 		http.Error(w, "Invalid user id", http.StatusBadRequest)
 		return
 	}
-	itinerary, err := h.itineraryRepo.ModifyItinerary(itineraryID, req.Title, req.Description, req.StartDate, req.EndDate)
+	itinerary, err := h.itineraryRepo.ModifyItinerary(itineraryID, req.Title, req.Description, req.StartDate, req.EndDate, req.Activities)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		return
+	}
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message":   "itinerary updated successfully",
+		"itinerary": itinerary,
+	})
 }
