@@ -2,6 +2,8 @@ package repository
 
 import (
 	"database/sql"
+	"log"
+
 	"github.com/Joshua-Pok/FYP-backend/models"
 	"github.com/lib/pq"
 )
@@ -15,21 +17,23 @@ func NewActivityRepository(db *sql.DB) *ActivityRepository {
 
 }
 
-func (r *ActivityRepository) CreateActivity(name, title string, price int, address string, image_url string, country_id int) (models.Activity, error) {
+func (r *ActivityRepository) CreateActivity(name, title string, price int, address string, country_id int) (models.Activity, error) {
 	var activity models.Activity
 
 	query := `
-	INSERT INTO activity (name, title, price, address, image_url, country_id) VALUES ($1, $2, $3, $4, $5) RETURNING id
+	INSERT INTO activity (name, title, price, address, imageurl, country_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, name, title, price, address, imageurl, country_id
 	`
-	err := r.db.QueryRow(query, name, title, price, address, image_url, country_id).Scan(
+	err := r.db.QueryRow(query, name, title, price, address, "", country_id).Scan(
 		&activity.ID,
 		&activity.Name,
 		&activity.Title,
 		&activity.Price,
+		&activity.Address,
 		&activity.ImageURL,
 		&activity.CountryID,
 	)
 	if err != nil {
+		log.Printf("CreateActivityerror : %v", err)
 		return models.Activity{}, err
 	}
 	return activity, nil

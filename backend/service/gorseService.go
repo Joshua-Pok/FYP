@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
+
+	"github.com/Joshua-Pok/FYP-backend/models"
 )
 
 type GorseService struct {
@@ -87,13 +90,58 @@ func (g *GorseService) AddUser(username string) error {
 	return nil
 }
 
+func (g *GorseService) AddPersonality(UserId string, Personality models.Personality) error {
+	labels := []string{
+		fmt.Sprintf("Openness:%.2f", Personality.Openness),
+		fmt.Sprintf("Conscientiousness:%.2f", Personality.Conscientiousness),
+		fmt.Sprintf("Extraversion:%.2f", Personality.Extraversion),
+		fmt.Sprintf("Agreeableness:%.2f", Personality.Agreeableness),
+		fmt.Sprintf("Neuroticism:%.2f", Personality.Neuroticism),
+	}
+
+	body := map[string]interface{}{
+		"Labels": labels,
+	}
+	jsonBody, err := json.Marshal(body)
+	if err != nil {
+		return err
+	}
+	url := fmt.Sprintf("%s/api/user/%s", g.BaseURL, UserId)
+	req, err := http.NewRequest(http.MethodPut, url, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		fmt.Errorf("Failed to create personality update request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := g.Client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to update user personality in Gorse: %w", err)
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Gorse returned status %d", resp.StatusCode)
+
+	}
+
+	return nil
+}
+
 func (g *GorseService) AddItem(itemID string, labels map[string]string) error {
+
+	flatLabels := make([]string, 0, len(labels))
+	for k, v := range labels {
+		flatLabels = append(flatLabels, fmt.Sprintf("%s:%s", k, v))
+	}
+
 	data := map[string]interface{}{
 		"item_id": itemID,
-		"labels":  labels,
+		"labels":  flatLabels,
 	}
 
 	jsonData, err := json.Marshal(data)
+	log.Printf("sending to gorse: %s", string(jsonData))
 	if err != nil {
 		return fmt.Errorf("failed to marshal item data: %w", err)
 	}

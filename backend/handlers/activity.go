@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -39,7 +40,7 @@ func (h *ActivityHandler) CreateActivity(w http.ResponseWriter, r *http.Request)
 		json.NewEncoder(w).Encode(map[string]string{"error": "invalid activity format"})
 		return
 	}
-	activity, err := h.activityRepo.CreateActivity(req.Name, req.Title, req.Price, req.Address, req.ImageURL, req.CountryID)
+	activity, err := h.activityRepo.CreateActivity(req.Name, req.Title, req.Price, req.Address, req.CountryID)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": "failed to create activity"})
@@ -48,9 +49,9 @@ func (h *ActivityHandler) CreateActivity(w http.ResponseWriter, r *http.Request)
 	labels := map[string]string{
 		"name":    activity.Name,
 		"title":   activity.Title,
-		"price":   strconv.Itoa(activity.Price),
-		"country": activity.CountryID,
-		"Address": activity.Address,
+		"price":   fmt.Sprintf("%.2f", activity.Price),
+		"country": strconv.Itoa(activity.CountryID),
+		"address": activity.Address,
 	}
 	if err := h.gorseService.AddItem(strconv.Itoa(activity.ID), labels); err != nil {
 		log.Printf("warning failed to add activity to gorse: %v", err)
