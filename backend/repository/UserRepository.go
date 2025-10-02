@@ -47,3 +47,13 @@ func (r *UserRepository) GetAllUsers() ([]models.User, error) {
 
 	return users, rows.Err()
 }
+
+func (r *UserRepository) GetUserByUsername(username string) (*models.User, error) {
+	user := &models.User{}
+	query := `SELECT id, username, name, email, password FROM users WHERE username = $1`
+	err := r.db.QueryRow(query, username).Scan(&user.ID, &user.UserName, &user.Name, &user.Email, &user.Password)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
+}

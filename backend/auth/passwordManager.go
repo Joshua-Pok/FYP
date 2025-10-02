@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"fmt"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -14,9 +13,6 @@ func HashPassword(password string) (string, error) {
 // verifies if given password matches stored hash
 func VerifyPassword(password, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-	if err != nil {
-		fmt.Errorf("Error comparing passwords")
-	}
 
-	return true
+	return err == nil
 }

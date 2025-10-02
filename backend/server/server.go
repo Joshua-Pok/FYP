@@ -36,14 +36,19 @@ func (s *Server) Start() error {
 	userHandler := handlers.NewUserHandler(userRepo, gorseService)
 	itineraryHandler := handlers.NewItineraryHandler(*itineraryRepo)
 	personalityHandler := handlers.NewPersonalityHandler(personalityRepo)
-	http.Handle("/users", middleware.JWTAuth(s.handleUsers(userHandler)))
-	http.HandleFunc("/personality", s.handlePersonality(personalityHandler))
-	http.HandleFunc("/itinerary", s.handleItinerary(itineraryHandler))
-	http.HandleFunc("/activity", s.handleActivity(activityHandler))
 
+	mux := http.NewServeMux()
+	mux.Handle("/users", middleware.JWTAuth(s.handleUsers(userHandler)))
+	mux.HandleFunc("/personality", s.handlePersonality(personalityHandler))
+	mux.HandleFunc("/itinerary", s.handleItinerary(itineraryHandler))
+	mux.HandleFunc("/activity", s.handleActivity(activityHandler))
+	mux.HandleFunc("/login", userHandler.Login)
+	mux.HandleFunc("/signup", userHandler.CreateUser)
+
+	handler := middleware.CORS(mux)
 	addr := ":" + s.config.Server.Port
 	log.Println("Server started successfully", s.config.Server.Port)
-	return http.ListenAndServe(addr, nil)
+	return http.ListenAndServe(addr, handler)
 }
 
 func (s *Server) handleUsers(handler *handlers.UserHandler) http.HandlerFunc {

@@ -20,6 +20,17 @@ type UserHandler struct {
 	gorseService *service.GorseService
 }
 
+type LoginRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+type LoginResponse struct {
+	Success bool         `json:"success"`
+	Token   string       `json:"token,omitempty"`
+	User    *models.User `json:"user,omitempty"`
+	Message string       `json:"message,omitempty"`
+}
+
 type CreateUserResponse struct {
 	ID    int    `json:"id"`
 	Name  string `json:"name"`
@@ -124,4 +135,60 @@ func (h *UserHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(users)
+}
+
+func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
+	var loginReq LoginRequest
+	if err := json.NewDecoder(r.Body).Decode(&loginReq); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(LoginResponse{
+			Success: false,
+			Message: "Invalid JSON",
+		})
+		return
+	}
+	user, err := h.userRepo.GetUserByUsername(loginReq.Username)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(LoginResponse{
+			Success: false,
+			Message: "Invalid Credentials: repo fail",
+		})
+		return
+	}
+	// Verify password
+	if !auth.VerifyPassword(loginReq.Password, user.Password) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(LoginResponse{
+			Success: false,
+			Message: "Invalid credentials: verify fail",
+		})
+		return
+	}
+
+	// Create token (you can still use email or switch to username)
+	token, err := auth.CreateToken(user.UserName) // Changed to use username
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(LoginResponse{
+			Success: false,
+			Message: "Failed to create token",
+		})
+		return
+	}
+
+	user.Password = ""
+
+	// Send success response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(LoginResponse{
+		Success: true,
+		Token:   token,
+		User:    user,
+	})
 }
