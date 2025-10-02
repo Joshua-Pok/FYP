@@ -39,8 +39,8 @@ func (r *ItineraryRepository) CreateItinerary(userId int, title, description str
 	itinerary.User_id = userId
 	itinerary.Title = title
 	itinerary.Description = description
-	itinerary.Start_date = startDate
-	itinerary.End_date = endDate
+	itinerary.StartDate = startDate
+	itinerary.EndDate = endDate
 	itinerary.Activities = activities
 
 	stmt, err := tx.Prepare(`INSERT INTO itinerary_activity(itinerary_id, activity_id) VALUES ($1, $2)`)
@@ -59,7 +59,7 @@ func (r *ItineraryRepository) CreateItinerary(userId int, title, description str
 }
 
 func (r *ItineraryRepository) GetItinerariesByUser(userId int) ([]models.Itinerary, error) {
-	query := `SELECT id, title, description, start_date, end_date FROM itinerary WHERE user_id = $1`
+	query := `SELECT id, user_id, title, description, start_date, end_date FROM itinerary WHERE user_id = $1`
 
 	rows, err := r.db.Query(query, userId)
 	if err != nil {
@@ -70,9 +70,26 @@ func (r *ItineraryRepository) GetItinerariesByUser(userId int) ([]models.Itinera
 	var itineraries []models.Itinerary
 	for rows.Next() {
 		var itinerary models.Itinerary
-		if err := rows.Scan(&itinerary.Activities, &itinerary.Activities); err != nil {
+		if err := rows.Scan(&itinerary.Id, &itinerary.User_id, &itinerary.Title, &itinerary.Description, &itinerary.StartDate, &itinerary.EndDate); err != nil {
 			return nil, err
 		}
+
+		activityQuery := `SELECT a.id, a.name, a.title, a.price, a.address, a.imageurl, a.country_id FROM activity a JOIN itinerary_activity ia ON a.id=ia.activity_id WHERE ia.itinerary_id = $1`
+		actRows, err := r.db.Query(activityQuery, itinerary.Id)
+		if err != nil {
+			return nil, err
+		}
+		var activities []models.Activity
+		for actRows.Next() {
+			var act models.Activity
+			if err := actRows.Scan(&act.ID, &act.Name, &act.Title, &act.Price, &act.Address, &act.ImageURL, &act.CountryID); err != nil {
+				actRows.Close()
+				return nil, err
+			}
+			activities = append(activities, act)
+		}
+		actRows.Close()
+		itinerary.Activities = activities
 		itineraries = append(itineraries, itinerary)
 	}
 
@@ -98,7 +115,7 @@ func (r *ItineraryRepository) ModifyItinerary(id int, title string, description 
 		}
 	}()
 
-	query := `UPDATE itineraries SET title = $1, description = $2, start_date = $3, end_date = $4 WHERE id = $5
+	query := `UPDATE itinerary SET title = $1, description = $2, start_date = $3, end_date = $4 WHERE id = $5
 RETURNING id, user_id, title, description, start_date, end_date
 	`
 
@@ -107,8 +124,8 @@ RETURNING id, user_id, title, description, start_date, end_date
 		&itinerary.User_id,
 		&itinerary.Title,
 		&itinerary.Description,
-		&itinerary.Start_date,
-		&itinerary.End_date,
+		&itinerary.StartDate,
+		&itinerary.EndDate,
 	)
 	if err != nil {
 		return itinerary, err

@@ -84,6 +84,8 @@ func (s *Server) handleItinerary(handler *handlers.ItineraryHandler) http.Handle
 			handler.CreateItinerary(w, r)
 		case http.MethodGet:
 			handler.GetItinerariesByUser(w, r)
+		case http.MethodPut, http.MethodPatch:
+			handler.ModifyItinerary(w, r)
 		default:
 			http.Error(w, "Method Not available", http.StatusInternalServerError)
 

@@ -8,7 +8,7 @@ type Itinerary struct {
 	Title       string     `json:"title" db:"Title"`
 	Description string     `json:"description" db:"description"`
 	Activities  []Activity `json:"Activities" db:"Activities"`
-	Start_date  time.Time  `json:"start_date" db:"start_date"`
-	End_date    time.Time  `json:"end_date" db:"end_date"`
+	StartDate   time.Time  `json:"start_date" db:"start_date"`
+	EndDate     time.Time  `json:"end_date" db:"end_date"`
 	Created_by  User       `json:"created_by" db:"created_by"`
 }
