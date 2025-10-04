@@ -45,9 +45,9 @@ export default function ItinerariesScreen({ userId }: { userId: number }) {
 
 	const handleItinerarySelect = (itinerary: Itinerary) => {
 		router.push({
-			pathname: "/ViewTripScreen",
-			params: { itineraryData: JSON.stringify(itinerary) }
-		})
+			pathname: "/ViewTripScreen/[id]",  // matches your dynamic file
+			params: { id: itinerary.id }       // pass the dynamic segment
+		});
 	}
 
 
