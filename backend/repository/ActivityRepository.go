@@ -42,7 +42,7 @@ func (r *ActivityRepository) CreateActivity(name, title string, price int, addre
 
 func (r *ActivityRepository) GetActivityById(activityID int) (*models.Activity, error) {
 	activity := &models.Activity{}
-	query := `SELECT name, title, price, address, imageurl, country_id FROM activity WHERE id + $1`
+	query := `SELECT name, title, price, address, imageurl, country_id FROM activity WHERE id = $1`
 
 	err := r.db.QueryRow(query, activityID).Scan(
 		&activity.ID,
@@ -87,7 +87,7 @@ func (r *ActivityRepository) GetActivitiesByItinerary(itineraryID int) ([]models
 
 	query := `
 
-	SELECT a.id, a.name, a.title, a.price, a.address, a.rating, a.imageurl, a.country_id
+	SELECT a.id, a.name, a.title, a.price, a.address, a.imageurl, a.country_id
 	FROM activity a
 	JOIN itinerary_activity ia ON a.id = ia.activity_id
 	WHERE ia.itinerary_id = $1
@@ -117,4 +117,10 @@ func (r *ActivityRepository) GetActivitiesByItinerary(itineraryID int) ([]models
 
 	}
 	return activities, rows.Err()
+}
+
+func (r *ActivityRepository) UpdateActivityImage(activityID int, imageURL string) error {
+	query := `UPDATE activity SET imageurl = $1 WHERE id = $2`
+	_, err := r.db.Exec(query, imageURL, activityID)
+	return err
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"mime/multipart"
+	"net/http"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -49,9 +50,18 @@ func (s *MinIOService) GetPublicURL(objectName string) string {
 
 func (m *MinIOService) UploadImage(Id string, file multipart.File, fileHeader *multipart.FileHeader) (string, error) {
 	ctx := context.Background()
-	objectName := fmt.Sprintf("activities/%s", Id)
-	_, err := m.Client.PutObject(ctx, m.BucketName, objectName, file, fileHeader.Size, minio.PutObjectOptions{
-		ContentType: fileHeader.Header.Get("Content-Type"),
+	objectName := Id
+	buffer := make([]byte, 512)
+	_, err := file.Read(buffer)
+	if err != nil {
+		return "", err
+	}
+	file.Seek(0, 0)
+	contentType := http.DetectContentType(buffer)
+	fmt.Println("detected content type: ", contentType)
+
+	_, err = m.Client.PutObject(ctx, m.BucketName, objectName, file, fileHeader.Size, minio.PutObjectOptions{
+		ContentType: contentType,
 	})
 
 	if err != nil {

@@ -34,18 +34,44 @@ func NewActivityhandler(activityRepo repository.ActivityRepository, minioService
 }
 
 func (h *ActivityHandler) CreateActivity(w http.ResponseWriter, r *http.Request) {
-	var req CreateActivityRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "invalid activity format"})
+	log.Printf("Received request - Method: %s, Content-Type: %s", r.Method, r.Header.Get("Content-Type"))
+	err := r.ParseMultipartForm(10 << 20)
+	if err != nil {
+		http.Error(w, "Could not parse multipart form", http.StatusBadRequest)
 		return
 	}
-	activity, err := h.activityRepo.CreateActivity(req.Name, req.Title, req.Price, req.Address, req.CountryID)
+
+	w.Header().Set("Content-Type", "application/json")
+	name := r.FormValue("name")
+	title := r.FormValue("title")
+	pricestr := r.FormValue("price")
+	address := r.FormValue("address")
+	countryIDStr := r.FormValue("countryid")
+	price, _ := strconv.Atoi(pricestr)
+	countryID, _ := strconv.Atoi(countryIDStr)
+
+	file, fileHeader, err := r.FormFile("image")
+	if err != nil {
+		http.Error(w, "Image Upload Failed", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	objectName := fmt.Sprintf("activities/%s", name)
+
+	imageURL, err := h.minioService.UploadImage(objectName, file, fileHeader)
+	if err != nil {
+		http.Error(w, "Failed to upload image", http.StatusInternalServerError)
+		return
+	}
+	activity, err := h.activityRepo.CreateActivity(name, title, price, address, countryID)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": "failed to create activity"})
 		return
 	}
+	activity.ImageURL = imageURL
+	_ = h.activityRepo.UpdateActivityImage(activity.ID, imageURL)
 	labels := map[string]string{
 		"name":    activity.Name,
 		"title":   activity.Title,

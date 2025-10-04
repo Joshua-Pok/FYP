@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, Pressable } from "react-native";
 import { api } from "@/services/api";
+import { router } from "expo-router";
 interface Activity {
 	id: number;
 	name: string;
@@ -42,14 +43,22 @@ export default function ItinerariesScreen({ userId }: { userId: number }) {
 	}, []);
 
 
+	const handleItinerarySelect = (itinerary: Itinerary) => {
+		router.push({
+			pathname: "/ViewTripScreen",
+			params: { itineraryData: JSON.stringify(itinerary) }
+		})
+	}
+
+
 	const renderItem = ({ item }: { item: Itinerary }) => (
-		<TouchableOpacity style={styles.card}>
+		<Pressable style={styles.card} onPress={() => handleItinerarySelect(item)}>
 			<Text style={styles.title}>{item.title}</Text>
 			<Text style={styles.description}>{item.description}</Text>
 			<Text style={styles.dates}>
 				{new Date(item.start_date).toLocaleDateString()} - {new Date(item.end_date).toLocaleDateString()}
 			</Text>
-		</TouchableOpacity>
+		</Pressable>
 	);
 
 	if (loading) {
