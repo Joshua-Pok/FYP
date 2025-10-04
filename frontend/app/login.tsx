@@ -4,17 +4,25 @@ import { useState } from "react";
 import { Button, TextInput } from "react-native-paper";
 import loginService from "@/services/loginService";
 import { ScrollView } from "react-native-gesture-handler";
+import { useUser } from "@/context/UserContext";
 export default function LoginScreen() {
 	const [username, setUsername] = useState("");
 	const [password, setPassword] = useState("");
 	const [loading, setLoading] = useState(false);
 
+	const { setUser } = useUser();
 
 	const handleSubmit = async () => {
 		setLoading(true)
 		try {
 			const result = await loginService.login({ username: username, password: password })
 			if (result.success) {
+				setUser({
+					id: result.user?.id!,
+					name: result.user?.name!,
+					email: result.user?.email!,
+					token: result.token!,
+				})
 				Alert.alert("You have succesfully logged in!")
 			} else {
 				Alert.alert("Login Failed, please try again")

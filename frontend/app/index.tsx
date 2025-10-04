@@ -28,6 +28,10 @@ export default function Index() {
 				Go to Signup Page
 			</Link>
 
+			<Link href="/Trips" style={styles.button}>
+				Go to Trips Page
+			</Link>
+
 		</View>
 	);
 }

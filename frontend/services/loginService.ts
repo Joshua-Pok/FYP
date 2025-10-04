@@ -1,5 +1,5 @@
 import { api } from "./api";
-
+import { router } from "expo-router";
 interface signupData {
 	name: string
 	username: string;
@@ -17,7 +17,7 @@ interface loginResponse {
 	success: boolean;
 	token?: string;
 	user?: {
-		id: string;
+		id: number;
 		email: string;
 		name: string;
 	}
@@ -41,6 +41,7 @@ const login = async (data: loginData): Promise<loginResponse> => {
 		if (response.data.token) {
 			const token = response.data.token
 			api.defaults.headers.common['Authorization'] = `Bearer ${token}`
+			router.push('/')
 		}
 		return response.data
 	} catch (err) {
