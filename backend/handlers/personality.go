@@ -2,19 +2,24 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/Joshua-Pok/FYP-backend/models"
 	"github.com/Joshua-Pok/FYP-backend/repository"
+	"github.com/Joshua-Pok/FYP-backend/service"
 )
 
 type PersonalityHandler struct {
 	personalityRepo *repository.PersonalityRepository
+	gorseService    *service.GorseService
 }
 
-func NewPersonalityHandler(personalityRepo *repository.PersonalityRepository) *PersonalityHandler {
-	return &PersonalityHandler{personalityRepo: personalityRepo}
+func NewPersonalityHandler(personalityRepo *repository.PersonalityRepository, gorseService *service.GorseService) *PersonalityHandler {
+
+	return &PersonalityHandler{personalityRepo: personalityRepo, gorseService: gorseService}
 }
 
 func (h *PersonalityHandler) CreatePersonality(w http.ResponseWriter, r *http.Request) {
@@ -28,6 +33,19 @@ func (h *PersonalityHandler) CreatePersonality(w http.ResponseWriter, r *http.Re
 	if err := h.personalityRepo.CreatePersonality(&personality); err != nil {
 		http.Error(w, "Failed to create personality", http.StatusInternalServerError)
 		return
+	}
+
+	labels := map[string]string{
+		"openness":          fmt.Sprintf("%.2f", personality.Openness),
+		"conscientiousness": fmt.Sprintf("%.2f", personality.Conscientiousness),
+		"extraversion":      fmt.Sprintf("%.2f", personality.Extraversion),
+		"agreeableness":     fmt.Sprintf("%.2f", personality.Agreeableness),
+		"neuroticism":       fmt.Sprintf("%.2f", personality.Neuroticism),
+	}
+
+	userIDstr := fmt.Sprintf("%d", personality.User_id)
+	if err := h.gorseService.UpdateUserLabels(userIDstr, labels); err != nil {
+		log.Printf("Warning: Failed to update labels for user %s: %v", userIDstr, err)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
