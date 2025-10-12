@@ -211,3 +211,28 @@ func (h *ActivityHandler) GetPopularActivities(w http.ResponseWriter, r *http.Re
 	})
 
 }
+
+func (h *ActivityHandler) GetActivitiesByCountry(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query()
+	countryIDs, ok := query["country_id"]
+	if !ok || len(countryIDs[0]) < 1 {
+		http.Error(w, "country_id parameter is required", http.StatusBadRequest)
+		return
+	}
+
+	countryID, err := strconv.Atoi(countryIDs[0])
+	if err != nil {
+		http.Error(w, "Invalid country ID", http.StatusBadRequest)
+		return
+	}
+
+	activities, err := h.activityRepo.GetActivitiesByCountry(countryID)
+	if err != nil {
+		http.Error(w, "failed to get activities", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(activities)
+
+}

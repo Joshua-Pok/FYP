@@ -124,3 +124,39 @@ func (r *ActivityRepository) UpdateActivityImage(activityID int, imageURL string
 	_, err := r.db.Exec(query, imageURL, activityID)
 	return err
 }
+
+func (r *ActivityRepository) GetActivitiesByCountry(countryID int) ([]models.Activity, error) {
+	query := `SELECT id, name, title, price, address, imageurl, country_id FROM activity WHERE country_id = $1`
+
+	rows, err := r.db.Query(query, countryID)
+	if err != nil {
+		log.Printf("Error getting activities by country : %v", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	var activities []models.Activity
+	for rows.Next() {
+		var a models.Activity
+		if err := rows.Scan(
+			&a.ID,
+			&a.Name,
+			&a.Title,
+			&a.Price,
+			&a.Address,
+			&a.ImageURL,
+			&a.CountryID,
+		); err != nil {
+			log.Printf("Error scanning activity: %v", err)
+			return nil, err
+		}
+		activities = append(activities, a)
+	}
+
+	if err = rows.Err(); err != nil {
+		log.Printf("Row Iteration error: %v", err)
+		return nil, err
+	}
+
+	return activities, nil
+}

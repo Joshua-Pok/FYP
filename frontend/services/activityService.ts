@@ -11,6 +11,20 @@ const getActivitiesByItinerary = async (itineraryId: number) => {
 };
 
 
+const getActivitiesByCountry = async (countryId: number) => {
+	try {
+		const response = await api.get('/activity', {
+			params: { country_id: countryId },
+		})
+		return response.data;
+	} catch (err) {
+		console.error("failed to fetch activities for country", err)
+		return []
+	}
+}
+
+
 export default {
-	getActivitiesByItinerary
+	getActivitiesByItinerary,
+	getActivitiesByCountry
 }

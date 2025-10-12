@@ -1,129 +1,254 @@
-import { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { View, ScrollView, StyleSheet } from "react-native";
+import {
+	Button,
+	FAB,
+	Text,
+	Card,
+	Chip,
+	useTheme,
+	Divider,
+} from "react-native-paper";
 import { DatePickerModal } from "react-native-paper-dates";
-import { StyleSheet, View, ScrollView } from "react-native";
-import { Button, FAB, Menu, DataTable } from "react-native-paper";
-import ActivityCard from "@/components/ActivityCard";
 import { Dropdown } from "react-native-paper-dropdown";
 
-export default function Createtrip() {
-  const [country, setCountry] = useState<string | undefined>("");
-  const [range, setRange] = useState<{
-    startDate: Date | undefined;
-    endDate: Date | undefined;
-  }>({
-    startDate: undefined,
-    endDate: undefined,
-  });
-  const [open, setOpen] = useState(false);
-  const [addActivityModalOpen, setAddActivityModalOpen] = useState(false);
+import activityService from "@/services/activityService";
+import countryService from "@/services/countryService";
+interface Country {
+	id: number;
+	name: string;
+}
 
-  const openMenu = () => {
-    setAddActivityModalOpen(true);
-  };
-  const onDismiss = () => {
-    setOpen(false);
-  };
+interface Activity {
+	id: number;
+	name: string;
+	title: string;
+	price: number;
+	address?: string;
+	imageurl?: string;
+	country_id: number;
+}
 
-  const onConfirm = ({
-    startDate,
-    endDate,
-  }: {
-    startDate: Date | undefined;
-    endDate: Date | undefined;
-  }) => {
-    setOpen(false);
-    setRange({ startDate, endDate });
-  };
+export default function CreateTrip() {
+	const theme = useTheme();
+	const [countries, setCountries] = useState<Country[]>([]);
+	const [country, setCountry] = useState<Country | undefined>();
+	const [activities, setActivities] = useState<Activity[]>([]);
+	const [selectedActivities, setSelectedActivities] = useState<Activity[]>([]);
+	const [openDatePicker, setOpenDatePicker] = useState(false);
+	const [range, setRange] = useState({
+		startDate: undefined as Date | undefined,
+		endDate: undefined as Date | undefined,
+	});
 
-  const OPTIONS = [
-    { label: "Singapore", value: "Singapore" },
-    { label: "Malaysia", value: "Malaysia" },
-    { label: "Hong Kong", value: "Hong Kong" },
-  ];
+	const fetchCountries = async () => {
+		try {
+			const res = await countryService.GetAllCountries();
+			setCountries(res);
+		} catch (err) {
+			console.error("Failed to fetch countries:", err);
+		}
+	};
 
-  const handleCountrySelect = (value: string | undefined): void => {
-    setCountry(value);
-  };
-  return (
-    <>
-      <h1>Trip Name</h1>
-      <p>Trip Description</p>
-      <Dropdown
-        label="Country"
-        mode={"outlined"}
-        placeholder="Select Country"
-        options={OPTIONS}
-        value={country}
-        onSelect={handleCountrySelect}
-      ></Dropdown>
-      <ScrollView contentContainerStyle={{ justifyContent: "center" }}>
-        <Button onPress={() => setOpen(true)} uppercase={false} mode="outlined">
-          Pick range
-        </Button>
-        <View style={{ height: 400, backgroundColor: "#ff321f" }}>
-          <DatePickerModal
-            locale="en"
-            mode="range"
-            visible={open}
-            onDismiss={onDismiss}
-            startDate={range.startDate}
-            endDate={range.endDate}
-            onConfirm={onConfirm}
-            {...({
-              contentContainerStyle: { backgroundColor: "#ff321f" },
-            } as any)}
-          />
-        </View>
-        <ActivityCard />
-        <DataTable>
-          <DataTable.Header>
-            <DataTable.Title>Dessert</DataTable.Title>
-            <DataTable.Title numeric>Calories</DataTable.Title>
-            <DataTable.Title numeric>Fat</DataTable.Title>
-          </DataTable.Header>
+	// Fetch activities by country
+	const fetchActivitiesByCountry = async (countryId: number) => {
+		try {
+			const res = await activityService.getActivitiesByCountry(countryId)
+			setActivities(res);
+			setSelectedActivities([]); // reset selected activities
+		} catch (err) {
+			console.error("Failed to fetch activities:", err);
+		}
+	};
 
-          <DataTable.Row>
-            <DataTable.Cell>Frozen yogurt</DataTable.Cell>
-            <DataTable.Cell numeric>159</DataTable.Cell>
-            <DataTable.Cell numeric>6.0</DataTable.Cell>
-          </DataTable.Row>
+	useEffect(() => {
+		fetchCountries();
+	}, []);
 
-          <DataTable.Row>
-            <DataTable.Cell>Ice cream sandwich</DataTable.Cell>
-            <DataTable.Cell numeric>237</DataTable.Cell>
-            <DataTable.Cell numeric>8.0</DataTable.Cell>
-          </DataTable.Row>
+	const handleCountrySelect = (countryName: string | undefined) => {
+		if (!countryName) return;
+		const selected = countries.find((c) => c.name === countryName);
+		if (selected) {
+			setCountry(selected);
+			fetchActivitiesByCountry(selected.id);
+		}
+	};
 
-          <DataTable.Pagination
-            page={1}
-            numberOfPages={3}
-            onPageChange={(page) => {
-              console.log(page);
-            }}
-            label="1-2 of 6"
-          />
-        </DataTable>
-        <View style={{ flex: 1 }}>
-          <Menu
-            visible={addActivityModalOpen}
-            anchor={
-              <FAB style={styles.addactivity} onPress={openMenu} icon="plus" />
-            }
-          >
-            <Menu.Item leadingIcon="redo" title="redo"></Menu.Item>
-          </Menu>
-        </View>
-      </ScrollView>
-    </>
-  );
+	const handleToggleActivity = (activity: Activity) => {
+		setSelectedActivities((prev) =>
+			prev.find((a) => a.id === activity.id)
+				? prev.filter((a) => a.id !== activity.id)
+				: [...prev, activity]
+		);
+	};
+
+	const handleConfirmDates = ({
+		startDate,
+		endDate,
+	}: {
+		startDate: Date | undefined;
+		endDate: Date | undefined;
+	}) => {
+		setRange({ startDate, endDate });
+		setOpenDatePicker(false);
+	};
+
+	return (
+		<ScrollView contentContainerStyle={styles.container}>
+			<Text variant="headlineMedium" style={styles.title}>
+				Create Your Trip
+			</Text>
+			<Text variant="bodyMedium" style={styles.subtitle}>
+				Plan your perfect adventure with AI
+			</Text>
+
+			{/* Country Dropdown */}
+			<Dropdown
+				label="Country"
+				mode="outlined"
+				placeholder="Select a country"
+				options={countries.map((c) => ({ label: c.name, value: c.name }))}
+				value={country?.name}
+				onSelect={handleCountrySelect}
+				style={styles.dropdown}
+			/>
+
+			{/* Activities Selection */}
+			{country && (
+				<View style={styles.activitiesContainer}>
+					<Text variant="titleMedium" style={styles.sectionTitle}>
+						Select Activities
+					</Text>
+					<View style={styles.chipContainer}>
+						{activities.map((activity) => (
+							<Chip
+								key={activity.id}
+								selected={selectedActivities.some((a) => a.id === activity.id)}
+								onPress={() => handleToggleActivity(activity)}
+								style={[
+									styles.chip,
+									selectedActivities.some((a) => a.id === activity.id) &&
+									styles.selectedChip,
+								]}
+								selectedColor={theme.colors.primary}
+							>
+								{activity.name}
+							</Chip>
+						))}
+					</View>
+				</View>
+			)}
+
+			{/* Date Range Picker */}
+			<Button
+				mode="outlined"
+				onPress={() => setOpenDatePicker(true)}
+				style={styles.dateButton}
+			>
+				{range.startDate && range.endDate
+					? `${range.startDate.toDateString()} - ${range.endDate.toDateString()}`
+					: "Select Trip Dates"}
+			</Button>
+
+			<DatePickerModal
+				locale="en"
+				mode="range"
+				visible={openDatePicker}
+				onDismiss={() => setOpenDatePicker(false)}
+				startDate={range.startDate}
+				endDate={range.endDate}
+				onConfirm={handleConfirmDates}
+			/>
+
+			<Divider style={{ marginVertical: 20 }} />
+
+			{/* Selected Activities Display */}
+			<Text variant="titleMedium" style={styles.sectionTitle}>
+				Itinerary
+			</Text>
+
+			{selectedActivities.length > 0 ? (
+				selectedActivities.map((activity) => (
+					<Card key={activity.id} style={styles.activityCard}>
+						<Card.Title title={activity.name} />
+						<Card.Content>
+							<Text variant="bodySmall">
+								AI-generated itinerary details will appear here...
+							</Text>
+						</Card.Content>
+					</Card>
+				))
+			) : (
+				<Text style={styles.emptyText}>
+					Select activities to build your itinerary.
+				</Text>
+			)}
+
+			{/* Floating Action Button */}
+			<FAB
+				icon="robot"
+				label="Generate AI Itinerary"
+				onPress={() => console.log("Generate AI itinerary")}
+				style={styles.fab}
+			/>
+		</ScrollView>
+	);
 }
 
 const styles = StyleSheet.create({
-  addactivity: {
-    position: "absolute",
-    margin: 16,
-    right: 0,
-    bottom: 0,
-    borderRadius: "50%",
-  },
+	container: {
+		padding: 20,
+		paddingBottom: 100,
+		backgroundColor: "#fafafa",
+	},
+	title: {
+		textAlign: "center",
+		fontWeight: "700",
+		marginBottom: 4,
+	},
+	subtitle: {
+		textAlign: "center",
+		color: "#666",
+		marginBottom: 20,
+	},
+	dropdown: {
+		marginBottom: 20,
+	},
+	activitiesContainer: {
+		marginBottom: 20,
+	},
+	chipContainer: {
+		flexDirection: "row",
+		flexWrap: "wrap",
+		gap: 8,
+		marginTop: 10,
+	},
+	chip: {
+		marginRight: 6,
+		marginBottom: 6,
+	},
+	selectedChip: {
+		backgroundColor: "#e3f2fd",
+	},
+	dateButton: {
+		marginVertical: 10,
+	},
+	sectionTitle: {
+		fontWeight: "600",
+	},
+	activityCard: {
+		marginVertical: 6,
+		borderRadius: 10,
+		elevation: 2,
+	},
+	emptyText: {
+		textAlign: "center",
+		color: "#aaa",
+		marginVertical: 10,
+	},
+	fab: {
+		position: "absolute",
+		right: 20,
+		bottom: 20,
+	},
 });

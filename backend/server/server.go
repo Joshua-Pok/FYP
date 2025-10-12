@@ -32,16 +32,20 @@ func (s *Server) Start() error {
 	personalityRepo := repository.NewPersonalityRepository(s.db)
 	itineraryRepo := repository.NewItineraryRepository(s.db)
 	activityRepo := repository.NewActivityRepository(s.db)
+	countryRepo := repository.NewCountryRepository(s.db)
+
 	activityHandler := handlers.NewActivityhandler(*activityRepo, minioService, gorseService, cacheService)
 	userHandler := handlers.NewUserHandler(userRepo, gorseService)
 	itineraryHandler := handlers.NewItineraryHandler(*itineraryRepo)
-	personalityHandler := handlers.NewPersonalityHandler(personalityRepo)
+	personalityHandler := handlers.NewPersonalityHandler(personalityRepo, gorseService)
+	countryHandler := handlers.NewCountryHandler(countryRepo)
 
 	mux := http.NewServeMux()
 	mux.Handle("/users", middleware.JWTAuth(s.handleUsers(userHandler)))
 	mux.HandleFunc("/personality", s.handlePersonality(personalityHandler))
 	mux.HandleFunc("/itinerary", s.handleItinerary(itineraryHandler))
 	mux.HandleFunc("/activity", s.handleActivity(activityHandler))
+	mux.HandleFunc("/country", s.handleCountry(countryHandler))
 	mux.HandleFunc("/login", userHandler.Login)
 	mux.HandleFunc("/signup", userHandler.CreateUser)
 
@@ -99,9 +103,26 @@ func (s *Server) handleActivity(handler *handlers.ActivityHandler) http.HandlerF
 		case http.MethodPost:
 			handler.CreateActivity(w, r)
 		case http.MethodGet:
-			handler.GetActivitiesByItinerary(w, r)
+			if r.URL.Query().Get("country_id") != "" {
+				handler.GetActivitiesByCountry(w, r)
+			} else {
+				handler.GetActivitiesByItinerary(w, r)
+			}
 		default:
 			http.Error(w, "Method Not available", http.StatusInternalServerError)
+		}
+	}
+}
+
+func (s *Server) handleCountry(handler *handlers.CountryHandler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPost:
+			handler.CreateCountry(w, r)
+		case http.MethodGet:
+			handler.GetAllCountries(w, r)
+		default:
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		}
 	}
 }
