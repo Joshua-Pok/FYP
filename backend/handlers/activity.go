@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -57,7 +58,12 @@ func (h *ActivityHandler) CreateActivity(w http.ResponseWriter, r *http.Request)
 	}
 	defer file.Close()
 
-	objectName := fmt.Sprintf("activities/%s", name)
+	ext := filepath.Ext(fileHeader.Filename)
+	if ext == "" {
+		ext = ".png"
+	}
+
+	objectName := fmt.Sprintf("activities/%s%s", name, ext)
 
 	imageURL, err := h.minioService.UploadImage(objectName, file, fileHeader)
 	if err != nil {

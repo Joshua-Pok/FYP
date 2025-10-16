@@ -31,8 +31,8 @@ export default function Index() {
 			<Link href="/ItineraryScreen" style={styles.button}>
 				Go to Trips Page
 			</Link>
-			<Link href="/ItineraryScreen" style={styles.button}>
-				Go to Trips Page
+			<Link href="/createactivity" style={styles.button}>
+				Go to CreateaCtivity
 			</Link>
 
 

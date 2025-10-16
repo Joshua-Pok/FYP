@@ -76,7 +76,7 @@ export default function ViewTripScreen() {
 				activities.map((activity) => (
 					<View key={activity.id} style={styles.activityCard}>
 						<Image
-							source={{ uri: `http://192.168.1.10:9000${activity.imageurl}.png` }}
+							source={{ uri: `http://192.168.1.10:9000${activity.imageurl}` }}
 							style={styles.activityImage}
 						/>
 						<View style={styles.activityContent}>
