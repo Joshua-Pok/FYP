@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, ScrollView, ActivityIndicator, StyleSheet, Image } from "react-native";
 import { useLocalSearchParams } from "expo-router";
-import { api } from "@/services/api"; // your API service
+import { api } from "@/services/api";
 
+const BASE_URL = "http://192.168.1.10:9001";
 interface Activity {
 	id: number;
 	title: string;
@@ -23,7 +24,6 @@ interface Itinerary {
 export default function ViewTripScreen() {
 	const params = useLocalSearchParams();
 	const itineraryId = Number(params.id);
-
 	const [activities, setActivities] = useState<Activity[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
@@ -35,10 +35,18 @@ export default function ViewTripScreen() {
 	const fetchItinerary = async () => {
 		try {
 			setLoading(true);
-			const activitiesRes = await api.get(`/activity?itinerary_id=${itineraryId}`);
-			setActivities(activitiesRes.data || []);
+			const res = await api.get(`/activity?itinerary_id=${itineraryId}`);
+
+			console.log("API response:", res.data);
+
+			if (Array.isArray(res.data.activities)) {
+				setActivities(res.data.activities);
+			} else {
+				setActivities([]);
+			}
+
 		} catch (err) {
-			console.error(err);
+			console.error("Error fetching itinerary:", err);
 			setError("Failed to load itinerary or activities.");
 		} finally {
 			setLoading(false);
@@ -61,17 +69,14 @@ export default function ViewTripScreen() {
 		);
 	}
 
-
-
 	return (
 		<ScrollView style={styles.container}>
-
 			<Text style={styles.activitiesHeader}>Activities ({activities.length})</Text>
 			{activities.length > 0 ? (
 				activities.map((activity) => (
 					<View key={activity.id} style={styles.activityCard}>
 						<Image
-							source={{ uri: `http://192.168.1.10:9001${activity.imageurl}` }} // replace localhost with your IP for mobile
+							source={{ uri: `http://192.168.1.10:9000${activity.imageurl}.png` }}
 							style={styles.activityImage}
 						/>
 						<View style={styles.activityContent}>

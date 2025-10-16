@@ -1,6 +1,5 @@
 import { createContext, ReactNode, useContext, useEffect, useState } from "react"
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import personalityService from "@/services/personalityService";
 
 interface personality {
 	id: number;
@@ -40,12 +39,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 				const storedUser = await AsyncStorage.getItem("user");
 				if (storedUser) {
 					const parsedUser: User = JSON.parse(storedUser);
-
-					const personality = await personalityService.getPersonalityByUserId(user!.id);
-					const updatedUser = { ...parsedUser, personality }
-
-					setUserState(updatedUser);
-					await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+					setUserState(parsedUser);
 				}
 			} catch (err) {
 				console.error("Error loading user: ", err)
@@ -54,7 +48,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 			}
 		}
 		loadUser();
-	}, [user])
+	}, [])
 
 	const setUser = async (user: User | null) => {
 		try {

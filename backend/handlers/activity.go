@@ -236,3 +236,19 @@ func (h *ActivityHandler) GetActivitiesByCountry(w http.ResponseWriter, r *http.
 	json.NewEncoder(w).Encode(activities)
 
 }
+
+func (h *ActivityHandler) GetPopularActivities2(w http.ResponseWriter, r http.Request) {
+	ids, err := h.gorseService.GetPopularActivities(10)
+	if err != nil {
+		http.Error(w, "failed to get popular activities from gorse", http.StatusInternalServerError)
+
+	}
+	activities, err := h.activityRepo.GetActivitiesByIds(ids)
+	if err != nil {
+		http.Error(w, "failed to get activities details", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(activities)
+}

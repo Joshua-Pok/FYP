@@ -5,6 +5,7 @@ import { Button, TextInput } from "react-native-paper";
 import loginService from "@/services/loginService";
 import { ScrollView } from "react-native-gesture-handler";
 import { useUser } from "@/context/UserContext";
+import personalityService from "@/services/personalityService";
 export default function LoginScreen() {
 	const [username, setUsername] = useState("");
 	const [password, setPassword] = useState("");
@@ -16,12 +17,15 @@ export default function LoginScreen() {
 		setLoading(true)
 		try {
 			const result = await loginService.login({ username: username, password: password })
+
 			if (result.success) {
+				const personality = await personalityService.getPersonalityByUserId(result.user?.id!)
 				setUser({
 					id: result.user?.id!,
 					name: result.user?.name!,
 					email: result.user?.email!,
 					token: result.token!,
+					personality: personality,
 				})
 				Alert.alert("You have succesfully logged in!")
 			} else {
