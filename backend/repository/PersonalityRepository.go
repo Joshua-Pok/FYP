@@ -28,6 +28,12 @@ func (r *PersonalityRepository) CreatePersonality(p *models.Personality) error {
 	).Scan(&p.Id)
 }
 
+func (r *PersonalityRepository) UpdatePersonality(p *models.Personality) error {
+	query := `UPDATE personality SET openness = $1, conscientiousness = $2, extraversion = $3, agreeableness = $4, neuroticism = $5 WHERE user_id = $6 RETURNING id`
+
+	return r.db.QueryRow(query, p.Openness, p.Conscientiousness, p.Extraversion, p.Agreeableness, p.Neuroticism, p.User_id).Scan(&p.Id)
+}
+
 func (r *PersonalityRepository) GetPersonalityByUser(userID int) (*models.Personality, error) {
 	p := &models.Personality{}
 
@@ -48,4 +54,20 @@ func (r *PersonalityRepository) GetPersonalityByUser(userID int) (*models.Person
 		return nil, err
 	}
 	return p, nil
+}
+
+func (r *PersonalityRepository) UpsertPersonality(p *models.Personality) error {
+	var id int
+	err := r.db.QueryRow("SELECT id FROM personality WHERE user_id=$1", p.User_id).Scan(&id)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return r.CreatePersonality(p)
+		}
+
+		return err
+	}
+
+	p.Id = id
+	return r.UpdatePersonality(p)
 }

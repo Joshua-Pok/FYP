@@ -76,3 +76,34 @@ func (h *PersonalityHandler) GetPersonalityByUserId(w http.ResponseWriter, r *ht
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(personality)
 }
+
+func (h *PersonalityHandler) UpsertPersonality(w http.ResponseWriter, r *http.Request) {
+	var personality models.Personality
+
+	if err := json.NewDecoder(r.Body).Decode(&personality); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.personalityRepo.UpsertPersonality(&personality); err != nil {
+		http.Error(w, "Failed to upsert personality", http.StatusInternalServerError)
+		return
+	}
+
+	labels := map[string]string{
+		"openness":          fmt.Sprintf("%.2f", personality.Openness),
+		"conscientiousness": fmt.Sprintf("%.2f", personality.Conscientiousness),
+		"extraversion":      fmt.Sprintf("%.2f", personality.Extraversion),
+		"agreeableness":     fmt.Sprintf("%.2f", personality.Agreeableness),
+		"neuroticism":       fmt.Sprintf("%.2f", personality.Neuroticism),
+	}
+
+	userIDstr := fmt.Sprintf("%d", personality.User_id)
+	if err := h.gorseService.UpdateUserLabels(userIDstr, labels); err != nil {
+		log.Printf("Warning: Failed to update labels for user %s: %v", userIDstr, err)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(personality)
+}

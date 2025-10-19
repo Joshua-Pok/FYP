@@ -72,7 +72,7 @@ func (s *Server) handlePersonality(handler *handlers.PersonalityHandler) http.Ha
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodPost:
-			handler.CreatePersonality(w, r)
+			handler.UpsertPersonality(w, r)
 		case http.MethodGet:
 			handler.GetPersonalityByUserId(w, r)
 		default:

@@ -171,8 +171,16 @@ func (g *GorseService) AddItem(itemID string, labels map[string]string) error {
 }
 
 func (g *GorseService) UpdateUserLabels(userId string, labels map[string]string) error {
+
+	flatLabels := make([]string, 0, len(labels))
+
+	for k, v := range labels {
+		flatLabels = append(flatLabels, fmt.Sprintf("%s:%s", k, v))
+	}
 	payload := map[string]any{
-		"labels": labels,
+		"Comment":   "",
+		"labels":    flatLabels,
+		"Subscribe": []string{},
 	}
 
 	jsonBody, err := json.Marshal(payload)
@@ -181,7 +189,7 @@ func (g *GorseService) UpdateUserLabels(userId string, labels map[string]string)
 	}
 
 	url := fmt.Sprintf("%s/api/user/%s", g.BaseURL, userId)
-	req, err := http.NewRequest(http.MethodPut, url, bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequest(http.MethodPatch, url, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		return err
 	}

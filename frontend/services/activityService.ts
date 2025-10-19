@@ -67,8 +67,26 @@ const getActivitiesByCountry = async (countryId: number) => {
 }
 
 
+const getRecommendedActivitiesByCountry = async (userId: string, countryId: number) => {
+
+	try {
+		const response = await api.get("/activity", {
+			params: {
+				user_id: userId,
+				country_id: countryId,
+			},
+		})
+		return response.data.activities
+	} catch (err) {
+		console.error("failed to fetch recommended activities by country: ", err);
+		return []
+	}
+}
+
+
 export default {
 	getActivitiesByItinerary,
 	getActivitiesByCountry,
 	createActivity,
+	getRecommendedActivitiesByCountry
 }
