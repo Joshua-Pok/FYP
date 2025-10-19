@@ -30,7 +30,7 @@ export default function RootLayout() {
 
 const styles = StyleSheet.create({
 	container: {
-		backgroundColor: "green",
+		backgroundColor: "black",
 		flex: 1,
 		padding: 20
 	},

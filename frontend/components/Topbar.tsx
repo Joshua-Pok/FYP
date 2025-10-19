@@ -1,40 +1,104 @@
-import { useState } from "react";
-import { StyleSheet } from "react-native"; // Add this import
-import { SegmentedButtons } from "react-native-paper";
-import { SafeAreaView } from "react-native-safe-area-context";
+import React, { useState } from "react";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 
-export default function Topbar() {
-	const [value, setValue] = useState("");
+type FilterType = "popular" | "for-me" | "all";
+
+export default function ActivityTopbar() {
+	const [activeFilter, setActiveFilter] = useState<FilterType>("all");
+
+	const handleFilterClick = (filter: FilterType) => {
+		// only update state for now — no callback
+		setActiveFilter(filter);
+	};
 
 	return (
-		<SafeAreaView style={styles.container}>
-			<SegmentedButtons
-				value={value}
-				onValueChange={setValue}
-				buttons={[
-					// This should be an array, not an object
-					{ value: "popular", label: "Popular" },
-					{ value: "for-me", label: "For Me" },
-					{ value: "random", label: "Random" },
-				]}
-				style={styles.buttons}
-			/>
-		</SafeAreaView>
+		<View style={styles.container}>
+			<View style={styles.filterContainer}>
+				<TouchableOpacity
+					onPress={() => handleFilterClick("popular")}
+					style={[
+						styles.button,
+						activeFilter === "popular" && styles.activeButton,
+					]}
+				>
+					<Text
+						style={[
+							styles.buttonText,
+							activeFilter === "popular" && styles.activeText,
+						]}
+					>
+						Popular
+					</Text>
+				</TouchableOpacity>
+
+				<TouchableOpacity
+					onPress={() => handleFilterClick("for-me")}
+					style={[
+						styles.button,
+						activeFilter === "for-me" && styles.activeButton,
+					]}
+				>
+					<Text
+						style={[
+							styles.buttonText,
+							activeFilter === "for-me" && styles.activeText,
+						]}
+					>
+						For Me
+					</Text>
+				</TouchableOpacity>
+
+				<TouchableOpacity
+					onPress={() => handleFilterClick("all")}
+					style={[
+						styles.button,
+						activeFilter === "all" && styles.activeButton,
+					]}
+				>
+					<Text
+						style={[
+							styles.buttonText,
+							activeFilter === "all" && styles.activeText,
+						]}
+					>
+						All Activities
+					</Text>
+				</TouchableOpacity>
+			</View>
+		</View>
 	);
 }
 
 const styles = StyleSheet.create({
 	container: {
-		backgroundColor: 'grey',
-		padding: 0,
-		margin: 0,
-
-		color: 'black'
+		alignItems: "center",
+		marginVertical: 16,
 	},
-
-	buttons: {
-		margin: 0,
-
-	}
-
+	filterContainer: {
+		flexDirection: "row",
+		backgroundColor: "rgba(255, 255, 255, 0.1)",
+		borderRadius: 50,
+		padding: 4,
+	},
+	button: {
+		paddingVertical: 10,
+		paddingHorizontal: 20,
+		borderRadius: 50,
+		backgroundColor: "transparent",
+	},
+	buttonText: {
+		color: "#aaa",
+		fontWeight: "500",
+		fontSize: 14,
+	},
+	activeButton: {
+		backgroundColor: "#6200EE", // replace with your theme’s color
+		shadowColor: "#6200EE",
+		shadowOpacity: 0.3,
+		shadowRadius: 5,
+		shadowOffset: { width: 0, height: 2 },
+	},
+	activeText: {
+		color: "#fff",
+	},
 });
