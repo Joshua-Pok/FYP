@@ -218,6 +218,52 @@ func (h *ActivityHandler) GetPopularActivities(w http.ResponseWriter, r *http.Re
 
 }
 
+func (h *ActivityHandler) GetRecommededAcitivitiesByUserAndCountry(w http.ResponseWriter, r *http.Request) {
+	userId := r.URL.Query().Get("user_id")
+	countryIdStr := r.URL.Query().Get("country_id")
+
+	if userId == "" {
+		http.Error(w, "missing user_id parameter", http.StatusBadRequest)
+		return
+	}
+
+	if countryIdStr == "" {
+		http.Error(w, "Missing country_id parameter", http.StatusBadRequest)
+		return
+	}
+
+	countryId, err := strconv.Atoi(countryIdStr)
+	if err != nil {
+		http.Error(w, "invalid country_id parameter", http.StatusBadRequest)
+		return
+	}
+
+	ids, err := h.gorseService.GetRecommendationsByUserAndCategory(userId, strconv.Itoa(countryId), 10)
+	if err != nil {
+		http.Error(w, "failed to get recommendations by country", http.StatusInternalServerError)
+		return
+	}
+
+	activities, err := h.activityRepo.GetActivitiesByIds(ids)
+	if err != nil {
+		http.Error(w, "failed to get activities", http.StatusInternalServerError)
+		return
+	}
+
+	for i := range activities {
+		activities[i].ImageURL = h.minioService.GetPublicURL(activities[i].ImageURL)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":    true,
+		"user_id":    userId,
+		"country_id": countryId,
+		"activities": activities,
+	})
+
+}
+
 func (h *ActivityHandler) GetActivitiesByCountry(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	countryIDs, ok := query["country_id"]

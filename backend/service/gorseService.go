@@ -129,17 +129,28 @@ func (g *GorseService) AddPersonality(UserId string, Personality models.Personal
 }
 
 func (g *GorseService) AddItem(itemID string, labels map[string]string) error {
+	var categories []string
 
 	flatLabels := make([]string, 0, len(labels))
 	for k, v := range labels {
+		if k == "country" {
+			categories = append(categories, v)
+			continue
+		}
 		flatLabels = append(flatLabels, fmt.Sprintf("%s:%s", k, v))
 	}
 
 	data := map[string]interface{}{
-		"item_id": itemID,
-		"labels":  flatLabels,
+		"ItemId":     itemID,
+		"Categories": categories,
+		"Labels":     flatLabels,
 	}
 
+	// 🔍 Add full debug logs
+	log.Printf("[Gorse Debug] Preparing to send item to Gorse")
+	log.Printf("[Gorse Debug] ItemId: %s", itemID)
+	log.Printf("[Gorse Debug] Categories: %+v", categories)
+	log.Printf("[Gorse Debug] Labels: %+v", flatLabels)
 	jsonData, err := json.Marshal(data)
 	log.Printf("sending to gorse: %s", string(jsonData))
 	if err != nil {
@@ -186,4 +197,27 @@ func (g *GorseService) UpdateUserLabels(userId string, labels map[string]string)
 		return fmt.Errorf("Gorse returned status %d", resp.StatusCode)
 	}
 	return nil
+}
+
+func (g *GorseService) GetRecommendationsByUserAndCategory(userId string, category string, limit int) ([]string, error) {
+	url := fmt.Sprintf("%s/api/recommend/%s/%s?number=%d", g.BaseURL, userId, category, limit)
+
+	resp, err := g.Client.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("error connecting to gorse %w", err)
+
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Gorse Returning status %d", resp.StatusCode)
+	}
+
+	var ids []string
+
+	if err := json.NewDecoder(resp.Body).Decode(&ids); err != nil {
+		return nil, fmt.Errorf("failed to decode Gorse response: %w", err)
+	}
+
+	return ids, nil
 }

@@ -103,8 +103,13 @@ func (s *Server) handleActivity(handler *handlers.ActivityHandler) http.HandlerF
 		case http.MethodPost:
 			handler.CreateActivity(w, r)
 		case http.MethodGet:
+			if r.URL.Query().Get("user_id") != "" && r.URL.Query().Get("country_id") != "" {
+				handler.GetRecommededAcitivitiesByUserAndCountry(w, r)
+				return
+			}
 			if r.URL.Query().Get("country_id") != "" {
 				handler.GetActivitiesByCountry(w, r)
+				return
 			} else {
 				handler.GetActivitiesByItinerary(w, r)
 			}
