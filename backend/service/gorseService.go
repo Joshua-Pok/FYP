@@ -229,3 +229,61 @@ func (g *GorseService) GetRecommendationsByUserAndCategory(userId string, catego
 
 	return ids, nil
 }
+
+func (g *GorseService) LikeActivity(userID string, itemID string) error {
+	payload := []map[string]interface{}{
+		{
+			"Comment":      "",
+			"FeedbackType": "like",
+			"ItemId":       itemID,
+			"UserId":       userID,
+		},
+	}
+
+	jsonBody, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("Failed to marshal feedback payload: %w", err)
+	}
+
+	url := fmt.Sprintf("%s/api/feedback", g.BaseURL)
+
+	req, err := http.NewRequest(http.MethodPut, url, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return fmt.Errorf("Failed to create feedback requst : %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := g.Client.Do(req)
+
+	if err != nil {
+		return fmt.Errorf("Failed to send feedback to gorse: %w", err)
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Gorse Returned status %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
+func (g *GorseService) RemoveLikeActivity(userID string, itemID string) error {
+	url := fmt.Sprintf("%s/api/feedback/%s/%s", g.BaseURL, userID, itemID)
+	req, err := http.NewRequest(http.MethodDelete, url, nil)
+
+	if err != nil {
+		return fmt.Errorf("failed to create delete request: %w", err)
+	}
+
+	resp, err := g.Client.Do(req)
+	if err != nil {
+		return fmt.Errorf("Failed to send delete request to Gorse: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Gorse returned status %d", resp.StatusCode)
+	}
+	return nil
+}

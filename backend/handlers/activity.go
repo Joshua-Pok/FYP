@@ -304,3 +304,39 @@ func (h *ActivityHandler) GetPopularActivities2(w http.ResponseWriter, r http.Re
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(activities)
 }
+
+func (h *ActivityHandler) ToggleLikeActivity(w http.ResponseWriter, r *http.Request) {
+	userID := r.URL.Query().Get("user_id")
+	itemID := r.URL.Query().Get("activity_id")
+
+	if userID == "" || itemID == "" {
+		http.Error(w, "Missing user_id or Activity_id", http.StatusBadRequest)
+		return
+	}
+
+	var body struct {
+		Liked bool `json:"liked"`
+	}
+
+	var err error
+	if body.Liked {
+		err = h.gorseService.LikeActivity(userID, itemID)
+	} else {
+		err = h.gorseService.RemoveLikeActivity(userID, itemID)
+	}
+
+	if err != nil {
+		http.Error(w, "failed to toggle like", http.StatusInternalServerError)
+		return
+	}
+
+	action := "unliked"
+	if body.Liked {
+		action = "liked"
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": fmt.Sprintf("activity successfully %s", action),
+	})
+}

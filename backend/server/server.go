@@ -113,6 +113,12 @@ func (s *Server) handleActivity(handler *handlers.ActivityHandler) http.HandlerF
 			} else {
 				handler.GetActivitiesByItinerary(w, r)
 			}
+		case http.MethodPut:
+			if r.URL.Query().Get("user_id") != "" && r.URL.Query().Get("activity_id") != "" {
+				handler.ToggleLikeActivity(w, r)
+				return
+			}
+			http.Error(w, "missing user_id or activity_id for toggle like", http.StatusBadRequest)
 		default:
 			http.Error(w, "Method Not available", http.StatusInternalServerError)
 		}
