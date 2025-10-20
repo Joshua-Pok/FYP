@@ -1,62 +1,35 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, ScrollView, ActivityIndicator, StyleSheet, Image } from "react-native";
+import { View, Text, ScrollView, Image, ActivityIndicator, StyleSheet } from "react-native";
 import { useLocalSearchParams } from "expo-router";
-import { api } from "@/services/api";
-
-const BASE_URL = "http://192.168.1.10:9001";
-interface Activity {
-	id: number;
-	title: string;
-	name: string;
-	price: number;
-	address: string;
-	imageurl: string;
-}
-
-interface Itinerary {
-	id: number;
-	title: string;
-	description: string;
-	start_date: string;
-	end_date: string;
-}
+import activityService from "../../services/activityService"; // adjust path if needed
 
 export default function ViewTripScreen() {
-	const params = useLocalSearchParams();
-	const itineraryId = Number(params.id);
-	const [activities, setActivities] = useState<Activity[]>([]);
+	const { id } = useLocalSearchParams<{ id: string }>();
+	const [activities, setActivities] = useState<any[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 
 	useEffect(() => {
-		fetchItinerary();
-	}, []);
-
-	const fetchItinerary = async () => {
-		try {
-			setLoading(true);
-			const res = await api.get(`/activity?itinerary_id=${itineraryId}`);
-
-			console.log("API response:", res.data);
-
-			if (Array.isArray(res.data.activities)) {
-				setActivities(res.data.activities);
-			} else {
-				setActivities([]);
+		if (!id) return;
+		const fetchActivities = async () => {
+			try {
+				const data = await activityService.getActivitiesByItinerary(Number(id));
+				setActivities(data);
+			} catch (err) {
+				console.error(err);
+				setError("Failed to load activities.");
+			} finally {
+				setLoading(false);
 			}
+		};
 
-		} catch (err) {
-			console.error("Error fetching itinerary:", err);
-			setError("Failed to load itinerary or activities.");
-		} finally {
-			setLoading(false);
-		}
-	};
+		fetchActivities();
+	}, [id]);
 
 	if (loading) {
 		return (
 			<View style={styles.centered}>
-				<ActivityIndicator size="large" color="#007AFF" />
+				<ActivityIndicator size="large" color="#000" />
 			</View>
 		);
 	}
@@ -64,47 +37,133 @@ export default function ViewTripScreen() {
 	if (error) {
 		return (
 			<View style={styles.centered}>
-				<Text style={styles.errorText}>{error}</Text>
+				<Text style={{ color: "red" }}>{error}</Text>
 			</View>
 		);
 	}
 
 	return (
-		<ScrollView style={styles.container}>
-			<Text style={styles.activitiesHeader}>Activities ({activities.length})</Text>
-			{activities.length > 0 ? (
-				activities.map((activity) => (
-					<View key={activity.id} style={styles.activityCard}>
-						<Image
-							source={{ uri: `http://192.168.1.10:9000${activity.imageurl}` }}
-							style={styles.activityImage}
-						/>
-						<View style={styles.activityContent}>
-							<Text style={styles.activityTitle}>{activity.title}</Text>
-							<Text>{activity.name}</Text>
-							<Text>${activity.price}</Text>
-							<Text>{activity.address}</Text>
-						</View>
+		<ScrollView contentContainerStyle={styles.container}>
+			{activities.length === 0 ? (
+				<Text style={styles.emptyText}>No activities found for this itinerary.</Text>
+			) : (
+				activities.map((day, dayIndex) => (
+					<View key={dayIndex} style={styles.dayContainer}>
+						<Text style={styles.dayTitle}>Day {day.DayNumber}</Text>
+
+						{day.Activities.map((item: any, index: number) => (
+							<View key={index} style={styles.card}>
+								{item.Activity.imageurl ? (
+									<Image
+										source={{ uri: item.Activity.imageurl }}
+										style={styles.image}
+										resizeMode="cover"
+									/>
+								) : (
+									<View style={[styles.image, styles.placeholder]}>
+										<Text style={styles.placeholderText}>No Image</Text>
+									</View>
+								)}
+
+								<View style={styles.cardContent}>
+									<Text style={styles.activityName}>{item.Activity.name}</Text>
+									<Text style={styles.activityTitle}>{item.Activity.title}</Text>
+									<Text style={styles.activityAddress}>{item.Activity.address}</Text>
+									<Text style={styles.activityPrice}>${item.Activity.price}</Text>
+
+									{item.StartTime && item.EndTime && (
+										<Text style={styles.timeText}>
+											{formatTime(item.StartTime)} - {formatTime(item.EndTime)}
+										</Text>
+									)}
+								</View>
+							</View>
+						))}
 					</View>
 				))
-			) : (
-				<Text style={styles.noActivities}>No activities added yet.</Text>
 			)}
 		</ScrollView>
 	);
 }
 
+const formatTime = (isoString: string) => {
+	const date = new Date(isoString);
+	const hours = date.getUTCHours().toString().padStart(2, "0");
+	const minutes = date.getUTCMinutes().toString().padStart(2, "0");
+	return `${hours}:${minutes}`;
+};
+
 const styles = StyleSheet.create({
-	container: { flex: 1, padding: 15, backgroundColor: "#f5f5f5" },
-	centered: { flex: 1, justifyContent: "center", alignItems: "center" },
-	title: { fontSize: 22, fontWeight: "bold", marginBottom: 5 },
-	dates: { fontSize: 14, color: "#666", marginBottom: 10 },
-	description: { fontSize: 16, color: "#444", marginBottom: 15 },
-	activitiesHeader: { fontSize: 18, fontWeight: "600", marginBottom: 10 },
-	activityCard: { flexDirection: "row", marginBottom: 10, backgroundColor: "#fff", borderRadius: 8, overflow: "hidden", borderWidth: 1, borderColor: "#ddd" },
-	activityImage: { width: 100, height: 100 },
-	activityContent: { flex: 1, padding: 10 },
-	activityTitle: { fontSize: 16, fontWeight: "600", marginBottom: 3 },
-	noActivities: { textAlign: "center", color: "#999", fontStyle: "italic", marginVertical: 20 },
-	errorText: { color: "#ff3b30", fontSize: 16 },
+	container: {
+		padding: 16,
+	},
+	centered: {
+		flex: 1,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	emptyText: {
+		textAlign: "center",
+		marginTop: 50,
+		fontSize: 16,
+		color: "#555",
+	},
+	dayContainer: {
+		marginBottom: 24,
+	},
+	dayTitle: {
+		fontSize: 22,
+		fontWeight: "bold",
+		marginBottom: 12,
+		color: "#222",
+	},
+	card: {
+		backgroundColor: "#fff",
+		borderRadius: 12,
+		marginBottom: 12,
+		shadowColor: "#000",
+		shadowOpacity: 0.1,
+		shadowRadius: 4,
+		elevation: 2,
+		overflow: "hidden",
+	},
+	image: {
+		width: "100%",
+		height: 180,
+	},
+	placeholder: {
+		alignItems: "center",
+		justifyContent: "center",
+		backgroundColor: "#ddd",
+	},
+	placeholderText: {
+		color: "#777",
+	},
+	cardContent: {
+		padding: 12,
+	},
+	activityName: {
+		fontSize: 18,
+		fontWeight: "600",
+		color: "#333",
+	},
+	activityTitle: {
+		fontSize: 14,
+		color: "#666",
+		marginVertical: 4,
+	},
+	activityAddress: {
+		fontSize: 13,
+		color: "#888",
+	},
+	activityPrice: {
+		marginTop: 8,
+		fontWeight: "600",
+		color: "#007AFF",
+	},
+	timeText: {
+		marginTop: 4,
+		fontSize: 13,
+		color: "#666",
+	},
 });

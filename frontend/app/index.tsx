@@ -34,6 +34,10 @@ export default function Index() {
 			<Link href="/createactivity" style={styles.button}>
 				Go to CreateaCtivity
 			</Link>
+			<Link href="/CreateItinerary" style={styles.button}>
+				Go to CreateItinerary
+			</Link>
+
 
 
 		</View>

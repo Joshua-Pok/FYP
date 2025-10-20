@@ -60,7 +60,7 @@ export default function ItinerariesScreen() {
 		return (
 			<View style={styles.emptyContainer}>
 				<View style={styles.iconContainer}>
-					<Calendar color="#999" size={48} />
+					<Calendar size={48} />
 				</View>
 				<Text style={styles.emptyTitle}>No itineraries yet</Text>
 				<Text style={styles.emptyDescription}>
@@ -68,8 +68,7 @@ export default function ItinerariesScreen() {
 				</Text>
 				<Button
 					mode="contained"
-					icon={() => <Plus size={16} color="#fff" />}
-					onPress={() => router.push("/CreateItineraryScreen")}
+					icon={() => <Plus size={16} />}
 					style={styles.newButton}
 				>
 					Create Your First Itinerary
@@ -89,8 +88,7 @@ export default function ItinerariesScreen() {
 				</View>
 				<Button
 					mode="contained"
-					icon={() => <Plus size={16} color="#fff" />}
-					onPress={() => router.push("/CreateItineraryScreen")}
+					icon={() => <Plus size={16} />}
 					style={styles.newButton}
 				>
 					New Itinerary

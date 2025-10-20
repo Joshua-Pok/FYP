@@ -6,84 +6,32 @@ import {
 	TouchableOpacity,
 	ScrollView,
 	Image,
-	StyleSheet,
 	SafeAreaView,
 	Modal,
 	Platform,
+	StyleSheet
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-
-// Sample countries
-const countries = [
-	{ id: 1, name: "Japan" },
-	{ id: 2, name: "Thailand" },
-	{ id: 3, name: "South Korea" },
-	{ id: 4, name: "Singapore" },
-	{ id: 5, name: "France" },
-];
-
-// Sample available activities
-const availableActivities = [
-	{
-		id: 101,
-		name: "Senso-ji Temple",
-		title: "Historic Buddhist Temple",
-		price: 0,
-		address: "2-3-1 Asakusa, Taito City",
-		imageurl: "https://images.unsplash.com/photo-1549693578-d683be217e58?w=200",
-		country_id: 1,
-	},
-	{
-		id: 102,
-		name: "Tsukiji Outer Market",
-		title: "Fresh Seafood Market",
-		price: 30,
-		address: "4 Chome Tsukiji, Chuo City",
-		imageurl: "https://images.unsplash.com/photo-1555126634-323283e090fa?w=200",
-		country_id: 1,
-	},
-	{
-		id: 103,
-		name: "Tokyo Skytree",
-		title: "Observation Deck",
-		price: 25,
-		address: "1 Chome-1-2 Oshiage, Sumida City",
-		imageurl: "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=200",
-		country_id: 1,
-	},
-	{
-		id: 104,
-		name: "Meiji Shrine",
-		title: "Peaceful Shinto Shrine",
-		price: 0,
-		address: "1-1 Yoyogikamizonocho, Shibuya City",
-		imageurl: "https://images.unsplash.com/photo-1528164344705-47542687000d?w=200",
-		country_id: 1,
-	},
-	{
-		id: 105,
-		name: "Shibuya Crossing",
-		title: "World's Busiest Intersection",
-		price: 0,
-		address: "2 Chome-2-1 Dogenzaka, Shibuya City",
-		imageurl: "https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=200",
-		country_id: 1,
-	},
-];
+import activityService from '@/services/activityService';
+import countryService from '@/services/countryService';
+import { useUser } from '@/context/UserContext';
+import itineraryService from '@/services/itineraryService';
 
 const ItineraryBuilder = () => {
 	const [step, setStep] = useState(1);
 	const [itineraryInfo, setItineraryInfo] = useState({
-		title: "",
-		description: "",
-		countryId: "",
+		title: '',
+		description: '',
+		countryId: '',
 		startDate: new Date(),
 		endDate: new Date(),
 	});
-
 	const [selectedActivities, setSelectedActivities] = useState([]);
 	const [currentDay, setCurrentDay] = useState(1);
 	const [errors, setErrors] = useState({});
+	const [countries, setCountries] = useState([]);
+	const [availableActivities, setAvailableActivities] = useState([]);
+	const { user } = useUser();
 
 	// Date picker states
 	const [showStartDatePicker, setShowStartDatePicker] = useState(false);
@@ -97,6 +45,34 @@ const ItineraryBuilder = () => {
 	const [timePickerMode, setTimePickerMode] = useState('start');
 	const [selectedActivityForTime, setSelectedActivityForTime] = useState(null);
 
+	// Load countries on mount
+	useEffect(() => {
+		const fetchCountries = async () => {
+			try {
+				const res = await countryService.GetAllCountries();
+				setCountries(res); // assuming res is an array of {id, name}
+			} catch (err) {
+				console.error('Failed to fetch countries', err);
+			}
+		};
+		fetchCountries();
+	}, []);
+
+	// Load activities when country changes
+	useEffect(() => {
+		const fetchActivities = async () => {
+			if (!itineraryInfo.countryId) return;
+			try {
+				const res = await activityService.getActivitiesByCountry(parseInt(itineraryInfo.countryId));
+				setAvailableActivities(res);
+			} catch (err) {
+				console.error('Failed to fetch activities', err);
+				setAvailableActivities([]);
+			}
+		};
+		fetchActivities();
+	}, [itineraryInfo.countryId]);
+
 	// Calculate number of days
 	const totalDays = Math.ceil(
 		(itineraryInfo.endDate - itineraryInfo.startDate) / (1000 * 60 * 60 * 24)
@@ -108,10 +84,8 @@ const ItineraryBuilder = () => {
 		}
 	}, [totalDays, currentDay]);
 
-	// Filter activities by selected country
-	const filteredActivities = itineraryInfo.countryId
-		? availableActivities.filter(act => act.country_id === parseInt(itineraryInfo.countryId))
-		: availableActivities;
+	// Filter activities by selected country (already fetched dynamically)
+	const filteredActivities = availableActivities;
 
 	// Get activities for current day
 	const currentDayActivities = selectedActivities
@@ -126,26 +100,24 @@ const ItineraryBuilder = () => {
 			weekday: 'long',
 			month: 'short',
 			day: 'numeric',
-			year: 'numeric'
+			year: 'numeric',
 		});
 	};
 
 	// Validate step 1
 	const validateStep1 = () => {
 		const newErrors = {};
-		if (!itineraryInfo.title.trim()) newErrors.title = "Title is required";
-		if (!itineraryInfo.countryId) newErrors.countryId = "Country is required";
+		if (!itineraryInfo.title.trim()) newErrors.title = 'Title is required';
+		if (!itineraryInfo.countryId) newErrors.countryId = 'Country is required';
 		if (itineraryInfo.endDate < itineraryInfo.startDate) {
-			newErrors.endDate = "End date must be after start date";
+			newErrors.endDate = 'End date must be after start date';
 		}
 		setErrors(newErrors);
 		return Object.keys(newErrors).length === 0;
 	};
 
 	const handleContinue = () => {
-		if (validateStep1()) {
-			setStep(2);
-		}
+		if (validateStep1()) setStep(2);
 	};
 
 	// Add activity to current day
@@ -180,9 +152,7 @@ const ItineraryBuilder = () => {
 		if (
 			(direction === 'up' && activityIndex === 0) ||
 			(direction === 'down' && activityIndex === currentDayActivities.length - 1)
-		) {
-			return;
-		}
+		) return;
 
 		const targetIndex = direction === 'up' ? activityIndex - 1 : activityIndex + 1;
 		const updatedActivities = [...selectedActivities];
@@ -226,13 +196,16 @@ const ItineraryBuilder = () => {
 		}));
 
 		const payload = {
+			user_id: user!.id,
 			title: itineraryInfo.title,
 			description: itineraryInfo.description,
-			countryId: itineraryInfo.countryId,
-			startDate: itineraryInfo.startDate.toISOString().split('T')[0],
-			endDate: itineraryInfo.endDate.toISOString().split('T')[0],
+			start_date: itineraryInfo.startDate.toISOString().split('T')[0],
+			end_date: itineraryInfo.endDate.toISOString().split('T')[0],
 			activities: formattedActivities,
 		};
+
+		const response = await itineraryService.createItinerary(payload);
+
 
 		console.log('Submitting:', payload);
 		alert('Itinerary created! Check console for payload.');
@@ -269,10 +242,15 @@ const ItineraryBuilder = () => {
 		}
 	};
 
-	// Step 1: Basic Information
-	if (step === 1) {
-		return (
-			<SafeAreaView style={styles.container}>
+	// -----------------------------
+	// Step 1 UI (same as before)
+	// Step 2 UI (activities & scheduled list)
+	// Only change: use `countries` and `availableActivities` dynamically
+	// -----------------------------
+
+	return (
+		<SafeAreaView style={styles.container}>
+			{step === 1 ? (
 				<ScrollView style={styles.scrollView}>
 					<View style={styles.header}>
 						<Text style={styles.headerTitle}>Create New Itinerary</Text>
@@ -352,7 +330,7 @@ const ItineraryBuilder = () => {
 							</View>
 						</View>
 
-						{/* Trip Duration Display */}
+						{/* Trip Duration */}
 						{totalDays > 0 && (
 							<View style={styles.durationCard}>
 								<Text style={styles.durationText}>
@@ -365,260 +343,241 @@ const ItineraryBuilder = () => {
 							<Text style={styles.primaryButtonText}>Continue to Planning</Text>
 						</TouchableOpacity>
 					</View>
-				</ScrollView>
 
-				{/* Country Picker Modal */}
-				<Modal
-					visible={showCountryPicker}
-					transparent
-					animationType="slide"
-					onRequestClose={() => setShowCountryPicker(false)}
-				>
-					<View style={styles.modalOverlay}>
-						<View style={styles.modalContent}>
-							<Text style={styles.modalTitle}>Select Country</Text>
-							<ScrollView>
-								{countries.map(country => (
-									<TouchableOpacity
-										key={country.id}
-										style={styles.modalItem}
-										onPress={() => {
-											setItineraryInfo({ ...itineraryInfo, countryId: country.id.toString() });
-											setShowCountryPicker(false);
-										}}
-									>
-										<Text style={styles.modalItemText}>{country.name}</Text>
-									</TouchableOpacity>
-								))}
-							</ScrollView>
-							<TouchableOpacity
-								style={styles.modalCloseButton}
-								onPress={() => setShowCountryPicker(false)}
-							>
-								<Text style={styles.modalCloseButtonText}>Cancel</Text>
-							</TouchableOpacity>
-						</View>
-					</View>
-				</Modal>
-
-				{/* Date Pickers */}
-				{showStartDatePicker && (
-					<DateTimePicker
-						value={itineraryInfo.startDate}
-						mode="date"
-						display="default"
-						onChange={(event, date) => onDateChange(event, date, 'start')}
-					/>
-				)}
-				{showEndDatePicker && (
-					<DateTimePicker
-						value={itineraryInfo.endDate}
-						mode="date"
-						display="default"
-						onChange={(event, date) => onDateChange(event, date, 'end')}
-					/>
-				)}
-			</SafeAreaView>
-		);
-	}
-
-	// Step 2: Activity Planning
-	return (
-		<SafeAreaView style={styles.container}>
-			{/* Header */}
-			<View style={styles.planningHeader}>
-				<View>
-					<Text style={styles.planningTitle}>{itineraryInfo.title}</Text>
-					<Text style={styles.planningSubtitle}>
-						📍 {countries.find(c => c.id === parseInt(itineraryInfo.countryId))?.name} • {totalDays} days
-					</Text>
-				</View>
-				<TouchableOpacity onPress={() => setStep(1)}>
-					<Text style={styles.editButton}>Edit</Text>
-				</TouchableOpacity>
-			</View>
-
-			{/* Day Navigation */}
-			<View style={styles.dayNavigation}>
-				<TouchableOpacity
-					onPress={() => setCurrentDay(Math.max(1, currentDay - 1))}
-					disabled={currentDay === 1}
-					style={[styles.navButton, currentDay === 1 && styles.navButtonDisabled]}
-				>
-					<Text style={styles.navButtonText}>←</Text>
-				</TouchableOpacity>
-
-				<View style={styles.dayInfo}>
-					<Text style={styles.dayNumber}>Day {currentDay}</Text>
-					<Text style={styles.dayDate}>{getCurrentDate()}</Text>
-				</View>
-
-				<TouchableOpacity
-					onPress={() => setCurrentDay(Math.min(totalDays, currentDay + 1))}
-					disabled={currentDay === totalDays}
-					style={[styles.navButton, currentDay === totalDays && styles.navButtonDisabled]}
-				>
-					<Text style={styles.navButtonText}>→</Text>
-				</TouchableOpacity>
-			</View>
-
-			{/* Day Tabs */}
-			<ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dayTabs}>
-				{Array.from({ length: totalDays }, (_, i) => i + 1).map(day => {
-					const dayActivityCount = selectedActivities.filter(a => a.dayNumber === day).length;
-					return (
-						<TouchableOpacity
-							key={day}
-							style={[styles.dayTab, currentDay === day && styles.dayTabActive]}
-							onPress={() => setCurrentDay(day)}
-						>
-							<Text style={[styles.dayTabText, currentDay === day && styles.dayTabTextActive]}>
-								Day {day}
-								{dayActivityCount > 0 && ` (${dayActivityCount})`}
-							</Text>
-						</TouchableOpacity>
-					);
-				})}
-			</ScrollView>
-
-			{/* Main Content */}
-			<View style={styles.mainContent}>
-				{/* Available Activities */}
-				<View style={styles.activitiesSection}>
-					<Text style={styles.sectionTitle}>Available Activities ({filteredActivities.length})</Text>
-					<ScrollView horizontal showsHorizontalScrollIndicator={false}>
-						{filteredActivities.map(activity => (
-							<View key={activity.id} style={styles.activityCard}>
-								<Image source={{ uri: activity.imageurl }} style={styles.activityImage} />
-								<View style={styles.activityInfo}>
-									<Text style={styles.activityName} numberOfLines={1}>{activity.name}</Text>
-									<Text style={styles.activityTitle} numberOfLines={1}>{activity.title}</Text>
-									<View style={styles.activityFooter}>
-										<Text style={styles.activityPrice}>${activity.price}</Text>
+					{/* Country Picker Modal */}
+					<Modal
+						visible={showCountryPicker}
+						transparent
+						animationType="slide"
+						onRequestClose={() => setShowCountryPicker(false)}
+					>
+						<View style={styles.modalOverlay}>
+							<View style={styles.modalContent}>
+								<Text style={styles.modalTitle}>Select Country</Text>
+								<ScrollView>
+									{countries.map(country => (
 										<TouchableOpacity
-											style={styles.addButton}
-											onPress={() => addActivity(activity)}
+											key={country.id}
+											style={styles.modalItem}
+											onPress={() => {
+												setItineraryInfo({ ...itineraryInfo, countryId: country.id.toString() });
+												setShowCountryPicker(false);
+											}}
 										>
-											<Text style={styles.addButtonText}>+ Add</Text>
+											<Text style={styles.modalItemText}>{country.name}</Text>
 										</TouchableOpacity>
-									</View>
-								</View>
+									))}
+								</ScrollView>
+								<TouchableOpacity
+									style={styles.modalCloseButton}
+									onPress={() => setShowCountryPicker(false)}
+								>
+									<Text style={styles.modalCloseButtonText}>Cancel</Text>
+								</TouchableOpacity>
 							</View>
-						))}
+						</View>
+					</Modal>
+
+					{/* Date Pickers */}
+					{showStartDatePicker && (
+						<DateTimePicker
+							value={itineraryInfo.startDate}
+							mode="date"
+							display="default"
+							onChange={(event, date) => onDateChange(event, date, 'start')}
+						/>
+					)}
+					{showEndDatePicker && (
+						<DateTimePicker
+							value={itineraryInfo.endDate}
+							mode="date"
+							display="default"
+							onChange={(event, date) => onDateChange(event, date, 'end')}
+						/>
+					)}
+				</ScrollView>
+			) : (
+				<ScrollView style={styles.mainContent}>
+					{/* Planning Header */}
+					<View style={styles.planningHeader}>
+						<View>
+							<Text style={styles.planningTitle}>{itineraryInfo.title}</Text>
+							<Text style={styles.planningSubtitle}>
+								📍 {countries.find(c => c.id === parseInt(itineraryInfo.countryId))?.name} • {totalDays} days
+							</Text>
+						</View>
+						<TouchableOpacity onPress={() => setStep(1)}>
+							<Text style={styles.editButton}>Edit</Text>
+						</TouchableOpacity>
+					</View>
+
+					{/* Day Navigation */}
+					<View style={styles.dayNavigation}>
+						<TouchableOpacity
+							onPress={() => setCurrentDay(Math.max(1, currentDay - 1))}
+							disabled={currentDay === 1}
+							style={[styles.navButton, currentDay === 1 && styles.navButtonDisabled]}
+						>
+							<Text style={styles.navButtonText}>←</Text>
+						</TouchableOpacity>
+
+						<View style={styles.dayInfo}>
+							<Text style={styles.dayNumber}>Day {currentDay}</Text>
+							<Text style={styles.dayDate}>{getCurrentDate()}</Text>
+						</View>
+
+						<TouchableOpacity
+							onPress={() => setCurrentDay(Math.min(totalDays, currentDay + 1))}
+							disabled={currentDay === totalDays}
+							style={[styles.navButton, currentDay === totalDays && styles.navButtonDisabled]}
+						>
+							<Text style={styles.navButtonText}>→</Text>
+						</TouchableOpacity>
+					</View>
+
+					{/* Day Tabs */}
+					<ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dayTabs}>
+						{Array.from({ length: totalDays }, (_, i) => i + 1).map(day => {
+							const dayActivityCount = selectedActivities.filter(a => a.dayNumber === day).length;
+							return (
+								<TouchableOpacity
+									key={day}
+									style={[styles.dayTab, currentDay === day && styles.dayTabActive]}
+									onPress={() => setCurrentDay(day)}
+								>
+									<Text style={[styles.dayTabText, currentDay === day && styles.dayTabTextActive]}>
+										Day {day}
+										{dayActivityCount > 0 && ` (${dayActivityCount})`}
+									</Text>
+								</TouchableOpacity>
+							);
+						})}
 					</ScrollView>
-				</View>
 
-				{/* Scheduled Activities */}
-				<View style={styles.scheduledSection}>
-					<Text style={styles.sectionTitle}>Scheduled for Day {currentDay}</Text>
-					<ScrollView style={styles.scheduledList}>
-						{currentDayActivities.length === 0 ? (
-							<View style={styles.emptyState}>
-								<Text style={styles.emptyStateText}>No activities scheduled</Text>
-								<Text style={styles.emptyStateSubtext}>Add activities from above</Text>
-							</View>
-						) : (
-							currentDayActivities.map((activity, index) => (
-								<View key={activity.tempId} style={styles.scheduledActivity}>
-									<Image source={{ uri: activity.imageurl }} style={styles.scheduledImage} />
-									<View style={styles.scheduledInfo}>
-										<Text style={styles.scheduledName}>{activity.name}</Text>
-										<Text style={styles.scheduledTitle}>{activity.title}</Text>
-
-										{/* Time Display/Edit */}
-										<View style={styles.timeRow}>
+					{/* Available Activities */}
+					<View style={styles.activitiesSection}>
+						<Text style={styles.sectionTitle}>Available Activities ({filteredActivities.length})</Text>
+						<ScrollView horizontal showsHorizontalScrollIndicator={false}>
+							{filteredActivities.map(activity => (
+								<View key={activity.id} style={styles.activityCard}>
+									<Image source={{ uri: activity.imageurl }} style={styles.activityImage} />
+									<View style={styles.activityInfo}>
+										<Text style={styles.activityName} numberOfLines={1}>{activity.name}</Text>
+										<Text style={styles.activityTitle} numberOfLines={1}>{activity.title}</Text>
+										<View style={styles.activityFooter}>
+											<Text style={styles.activityPrice}>${activity.price}</Text>
 											<TouchableOpacity
-												style={styles.timeButton}
-												onPress={() => openTimePicker(activity.tempId, 'start')}
+												style={styles.addButton}
+												onPress={() => addActivity(activity)}
 											>
-												<Text style={styles.timeButtonText}>
-													{activity.startTime
-														? activity.startTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-														: 'Start Time'}
-												</Text>
-											</TouchableOpacity>
-											<Text style={styles.timeSeparator}>-</Text>
-											<TouchableOpacity
-												style={styles.timeButton}
-												onPress={() => openTimePicker(activity.tempId, 'end')}
-											>
-												<Text style={styles.timeButtonText}>
-													{activity.endTime
-														? activity.endTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-														: 'End Time'}
-												</Text>
+												<Text style={styles.addButtonText}>+ Add</Text>
 											</TouchableOpacity>
 										</View>
+									</View>
+								</View>
+							))}
+						</ScrollView>
+					</View>
 
-										<View style={styles.actionsRow}>
-											<Text style={styles.activityPrice}>${activity.price}</Text>
-											<View style={styles.actionButtons}>
+					{/* Scheduled Activities */}
+					<View style={styles.scheduledSection}>
+						<Text style={styles.sectionTitle}>Scheduled for Day {currentDay}</Text>
+						<ScrollView style={styles.scheduledList}>
+							{currentDayActivities.length === 0 ? (
+								<View style={styles.emptyState}>
+									<Text style={styles.emptyStateText}>No activities scheduled</Text>
+									<Text style={styles.emptyStateSubtext}>Add activities from above</Text>
+								</View>
+							) : (
+								currentDayActivities.map((activity, index) => (
+									<View key={activity.tempId} style={styles.scheduledActivity}>
+										<Image source={{ uri: activity.imageurl }} style={styles.scheduledImage} />
+										<View style={styles.scheduledInfo}>
+											<Text style={styles.scheduledName}>{activity.name}</Text>
+											<Text style={styles.scheduledTitle}>{activity.title}</Text>
+
+											{/* Time Display/Edit */}
+											<View style={styles.timeRow}>
 												<TouchableOpacity
-													onPress={() => moveActivity(activity.tempId, 'up')}
-													disabled={index === 0}
-													style={[styles.actionButton, index === 0 && styles.actionButtonDisabled]}
+													style={styles.timeButton}
+													onPress={() => openTimePicker(activity.tempId, 'start')}
 												>
-													<Text style={styles.actionButtonText}>↑</Text>
+													<Text style={styles.timeButtonText}>
+														{activity.startTime
+															? activity.startTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+															: 'Start Time'}
+													</Text>
 												</TouchableOpacity>
+												<Text style={styles.timeSeparator}>-</Text>
 												<TouchableOpacity
-													onPress={() => moveActivity(activity.tempId, 'down')}
-													disabled={index === currentDayActivities.length - 1}
-													style={[styles.actionButton, index === currentDayActivities.length - 1 && styles.actionButtonDisabled]}
+													style={styles.timeButton}
+													onPress={() => openTimePicker(activity.tempId, 'end')}
 												>
-													<Text style={styles.actionButtonText}>↓</Text>
+													<Text style={styles.timeButtonText}>
+														{activity.endTime
+															? activity.endTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+															: 'End Time'}
+													</Text>
 												</TouchableOpacity>
-												<TouchableOpacity
-													onPress={() => removeActivity(activity.tempId)}
-													style={[styles.actionButton, styles.deleteButton]}
-												>
-													<Text style={styles.deleteButtonText}>✕</Text>
-												</TouchableOpacity>
+											</View>
+
+											<View style={styles.actionsRow}>
+												<Text style={styles.activityPrice}>${activity.price}</Text>
+												<View style={styles.actionButtons}>
+													<TouchableOpacity
+														onPress={() => moveActivity(activity.tempId, 'up')}
+														disabled={index === 0}
+														style={[styles.actionButton, index === 0 && styles.actionButtonDisabled]}
+													>
+														<Text style={styles.actionButtonText}>↑</Text>
+													</TouchableOpacity>
+													<TouchableOpacity
+														onPress={() => moveActivity(activity.tempId, 'down')}
+														disabled={index === currentDayActivities.length - 1}
+														style={[styles.actionButton, index === currentDayActivities.length - 1 && styles.actionButtonDisabled]}
+													>
+														<Text style={styles.actionButtonText}>↓</Text>
+													</TouchableOpacity>
+													<TouchableOpacity
+														onPress={() => removeActivity(activity.tempId)}
+														style={styles.actionButton}
+													>
+														<Text style={styles.actionButtonText}>✕</Text>
+													</TouchableOpacity>
+												</View>
 											</View>
 										</View>
 									</View>
-								</View>
-							))
-						)}
-					</ScrollView>
+								))
+							)}
+						</ScrollView>
 
-					{/* Day Summary */}
-					{currentDayActivities.length > 0 && (
-						<View style={styles.daySummary}>
-							<Text style={styles.summaryText}>
-								{currentDayActivities.length} {currentDayActivities.length === 1 ? 'activity' : 'activities'}
-							</Text>
-							<Text style={styles.summaryTotal}>Total: ${dayTotal.toFixed(2)}</Text>
+						{/* Day Total */}
+						<View style={styles.dayTotal}>
+							<Text style={styles.dayTotalText}>Total: ${dayTotal}</Text>
 						</View>
+
+						{/* Submit Button */}
+						<TouchableOpacity style={styles.primaryButton} onPress={handleSubmit}>
+							<Text style={styles.primaryButtonText}>Submit Itinerary</Text>
+						</TouchableOpacity>
+					</View>
+
+					{/* Time Picker */}
+					{showTimePicker && (
+						<DateTimePicker
+							value={new Date()}
+							mode="time"
+							display="default"
+							onChange={onTimeChange}
+						/>
 					)}
-				</View>
-			</View>
-
-			{/* Bottom Actions */}
-			<View style={styles.bottomActions}>
-				<TouchableOpacity style={styles.secondaryButton} onPress={() => setStep(1)}>
-					<Text style={styles.secondaryButtonText}>← Back</Text>
-				</TouchableOpacity>
-				<TouchableOpacity
-					style={[styles.primaryButton, styles.createButton, selectedActivities.length === 0 && styles.buttonDisabled]}
-					onPress={handleSubmit}
-					disabled={selectedActivities.length === 0}
-				>
-					<Text style={styles.primaryButtonText}>Create Itinerary</Text>
-				</TouchableOpacity>
-			</View>
-
-			{/* Time Picker */}
-			{showTimePicker && (
-				<DateTimePicker
-					value={new Date()}
-					mode="time"
-					display="default"
-					onChange={onTimeChange}
-				/>
+				</ScrollView>
 			)}
 		</SafeAreaView>
 	);
 };
+
 
 const styles = StyleSheet.create({
 	container: {
@@ -626,45 +585,49 @@ const styles = StyleSheet.create({
 		backgroundColor: '#F9FAFB',
 	},
 	scrollView: {
-		flex: 1,
+		paddingHorizontal: 16,
 	},
 	header: {
-		padding: 24,
-		backgroundColor: '#FFFFFF',
+		marginVertical: 16,
 	},
 	headerTitle: {
-		fontSize: 28,
-		fontWeight: 'bold',
+		fontSize: 24,
+		fontWeight: '700',
 		color: '#111827',
-		marginBottom: 8,
 	},
 	headerSubtitle: {
 		fontSize: 16,
 		color: '#6B7280',
+		marginTop: 4,
 	},
 	form: {
-		padding: 24,
+		marginTop: 8,
 	},
 	inputGroup: {
-		marginBottom: 20,
+		marginBottom: 16,
 	},
 	label: {
 		fontSize: 14,
-		fontWeight: '600',
+		fontWeight: '500',
 		color: '#374151',
-		marginBottom: 8,
+		marginBottom: 4,
 	},
 	input: {
-		backgroundColor: '#FFFFFF',
 		borderWidth: 1,
 		borderColor: '#D1D5DB',
 		borderRadius: 8,
 		padding: 12,
 		fontSize: 16,
+		backgroundColor: '#FFFFFF',
 		color: '#111827',
 	},
 	inputError: {
 		borderColor: '#EF4444',
+	},
+	errorText: {
+		color: '#EF4444',
+		fontSize: 12,
+		marginTop: 4,
 	},
 	textArea: {
 		height: 100,
@@ -681,58 +644,54 @@ const styles = StyleSheet.create({
 		fontSize: 16,
 		color: '#9CA3AF',
 	},
-	errorText: {
-		color: '#EF4444',
-		fontSize: 12,
-		marginTop: 4,
-	},
 	dateRow: {
 		flexDirection: 'row',
+		justifyContent: 'space-between',
 	},
 	durationCard: {
-		backgroundColor: '#DBEAFE',
-		borderWidth: 1,
-		borderColor: '#93C5FD',
+		backgroundColor: '#E0F2FE',
+		padding: 12,
 		borderRadius: 8,
-		padding: 16,
-		marginBottom: 20,
+		marginBottom: 16,
+		alignItems: 'center',
 	},
 	durationText: {
-		color: '#1E40AF',
 		fontSize: 16,
-		fontWeight: '600',
+		fontWeight: '500',
+		color: '#0284C7',
 	},
 	primaryButton: {
 		backgroundColor: '#3B82F6',
+		paddingVertical: 14,
 		borderRadius: 8,
-		padding: 16,
 		alignItems: 'center',
+		marginVertical: 16,
 	},
 	primaryButtonText: {
 		color: '#FFFFFF',
-		fontSize: 16,
 		fontWeight: '600',
+		fontSize: 16,
 	},
 	modalOverlay: {
 		flex: 1,
-		backgroundColor: 'rgba(0, 0, 0, 0.5)',
-		justifyContent: 'flex-end',
+		backgroundColor: 'rgba(0,0,0,0.5)',
+		justifyContent: 'center',
+		paddingHorizontal: 32,
 	},
 	modalContent: {
 		backgroundColor: '#FFFFFF',
-		borderTopLeftRadius: 20,
-		borderTopRightRadius: 20,
-		padding: 20,
-		maxHeight: '80%',
+		borderRadius: 12,
+		maxHeight: '70%',
+		padding: 16,
 	},
 	modalTitle: {
-		fontSize: 20,
-		fontWeight: 'bold',
-		marginBottom: 16,
+		fontSize: 18,
+		fontWeight: '600',
+		marginBottom: 12,
 		color: '#111827',
 	},
 	modalItem: {
-		padding: 16,
+		paddingVertical: 12,
 		borderBottomWidth: 1,
 		borderBottomColor: '#E5E7EB',
 	},
@@ -741,83 +700,80 @@ const styles = StyleSheet.create({
 		color: '#111827',
 	},
 	modalCloseButton: {
-		marginTop: 16,
-		padding: 16,
+		marginTop: 12,
+		paddingVertical: 12,
+		alignItems: 'center',
 		backgroundColor: '#F3F4F6',
 		borderRadius: 8,
-		alignItems: 'center',
 	},
 	modalCloseButtonText: {
 		fontSize: 16,
-		fontWeight: '600',
-		color: '#6B7280',
+		fontWeight: '500',
+		color: '#374151',
+	},
+	mainContent: {
+		flex: 1,
+		paddingHorizontal: 16,
 	},
 	planningHeader: {
 		flexDirection: 'row',
 		justifyContent: 'space-between',
 		alignItems: 'center',
-		padding: 16,
-		backgroundColor: '#FFFFFF',
-		borderBottomWidth: 1,
-		borderBottomColor: '#E5E7EB',
+		marginVertical: 16,
 	},
 	planningTitle: {
-		fontSize: 20,
-		fontWeight: 'bold',
+		fontSize: 22,
+		fontWeight: '700',
 		color: '#111827',
 	},
 	planningSubtitle: {
 		fontSize: 14,
 		color: '#6B7280',
-		marginTop: 4,
+		marginTop: 2,
 	},
 	editButton: {
-		color: '#3B82F6',
 		fontSize: 14,
-		fontWeight: '600',
+		fontWeight: '500',
+		color: '#3B82F6',
 	},
 	dayNavigation: {
 		flexDirection: 'row',
-		justifyContent: 'space-between',
 		alignItems: 'center',
-		padding: 16,
-		backgroundColor: '#FFFFFF',
-		borderBottomWidth: 1,
-		borderBottomColor: '#E5E7EB',
+		marginBottom: 16,
 	},
 	navButton: {
-		width: 40,
-		height: 40,
-		borderRadius: 20,
-		backgroundColor: '#F3F4F6',
-		justifyContent: 'center',
-		alignItems: 'center',
+		padding: 8,
+		backgroundColor: '#E5E7EB',
+		borderRadius: 8,
 	},
 	navButtonDisabled: {
 		opacity: 0.3,
 	},
 	navButtonText: {
-		fontSize: 20,
+		fontSize: 18,
 		color: '#111827',
 	},
 	dayInfo: {
+		flex: 1,
 		alignItems: 'center',
 	},
 	dayNumber: {
-		fontSize: 24,
-		fontWeight: 'bold',
+		fontSize: 16,
+		fontWeight: '600',
 		color: '#111827',
 	},
 	dayDate: {
-		fontSize: 12,
+		fontSize: 14,
 		color: '#6B7280',
-		marginTop: 4,
+	},
+	dayTabs: {
+		marginBottom: 16,
 	},
 	dayTab: {
-		paddingHorizontal: 16,
 		paddingVertical: 8,
-		borderRadius: 8,
+		paddingHorizontal: 12,
 		backgroundColor: '#F3F4F6',
+		borderRadius: 8,
 		marginRight: 8,
 	},
 	dayTabActive: {
@@ -825,148 +781,127 @@ const styles = StyleSheet.create({
 	},
 	dayTabText: {
 		fontSize: 14,
-		fontWeight: '600',
-		color: '#6B7280',
+		color: '#111827',
+		fontWeight: '500',
 	},
 	dayTabTextActive: {
 		color: '#FFFFFF',
 	},
-	mainContent: {
-		flex: 1,
-	},
 	activitiesSection: {
-		backgroundColor: '#FFFFFF',
-		paddingVertical: 16,
-		borderBottomWidth: 1,
-		borderBottomColor: '#E5E7EB',
+		marginBottom: 16,
 	},
 	sectionTitle: {
 		fontSize: 16,
 		fontWeight: '600',
+		marginBottom: 8,
 		color: '#111827',
-		marginBottom: 12,
-		paddingHorizontal: 16,
 	},
 	activityCard: {
-		width: 160,
+		width: 140,
+		marginRight: 12,
 		backgroundColor: '#FFFFFF',
-		borderWidth: 1,
-		borderColor: '#E5E7EB',
-		borderRadius: 8,
-		marginLeft: 16,
+		borderRadius: 12,
 		overflow: 'hidden',
+		shadowColor: '#000',
+		shadowOpacity: 0.05,
+		shadowOffset: { width: 0, height: 2 },
+		shadowRadius: 4,
 	},
 	activityImage: {
 		width: '100%',
-		height: 100,
-		backgroundColor: '#F3F4F6',
+		height: 90,
 	},
 	activityInfo: {
-		padding: 12,
+		padding: 8,
 	},
 	activityName: {
 		fontSize: 14,
 		fontWeight: '600',
 		color: '#111827',
-		marginBottom: 4,
 	},
 	activityTitle: {
 		fontSize: 12,
 		color: '#6B7280',
-		marginBottom: 8,
+		marginVertical: 2,
 	},
 	activityFooter: {
 		flexDirection: 'row',
 		justifyContent: 'space-between',
 		alignItems: 'center',
+		marginTop: 4,
 	},
 	activityPrice: {
 		fontSize: 14,
 		fontWeight: '600',
-		color: '#10B981',
+		color: '#111827',
 	},
 	addButton: {
 		backgroundColor: '#3B82F6',
-		paddingHorizontal: 12,
-		paddingVertical: 6,
-		borderRadius: 4,
+		paddingVertical: 4,
+		paddingHorizontal: 8,
+		borderRadius: 6,
 	},
 	addButtonText: {
 		color: '#FFFFFF',
 		fontSize: 12,
-		fontWeight: '600',
+		fontWeight: '500',
 	},
 	scheduledSection: {
-		flex: 1,
-		backgroundColor: '#F9FAFB',
+		marginBottom: 32,
 	},
 	scheduledList: {
-		flex: 1,
-		padding: 16,
-	},
-	emptyState: {
-		alignItems: 'center',
-		justifyContent: 'center',
-		paddingVertical: 48,
-	},
-	emptyStateText: {
-		fontSize: 16,
-		color: '#9CA3AF',
-		marginBottom: 4,
-	},
-	emptyStateSubtext: {
-		fontSize: 14,
-		color: '#D1D5DB',
+		marginBottom: 12,
 	},
 	scheduledActivity: {
-		backgroundColor: '#FFFFFF',
-		borderRadius: 8,
-		padding: 12,
-		marginBottom: 12,
 		flexDirection: 'row',
-		borderWidth: 1,
-		borderColor: '#E5E7EB',
+		backgroundColor: '#FFFFFF',
+		borderRadius: 12,
+		marginBottom: 12,
+		overflow: 'hidden',
+		shadowColor: '#000',
+		shadowOpacity: 0.03,
+		shadowOffset: { width: 0, height: 1 },
+		shadowRadius: 2,
 	},
 	scheduledImage: {
 		width: 80,
 		height: 80,
-		borderRadius: 8,
-		backgroundColor: '#F3F4F6',
-		marginRight: 12,
 	},
 	scheduledInfo: {
 		flex: 1,
+		padding: 8,
+		justifyContent: 'space-between',
 	},
 	scheduledName: {
-		fontSize: 16,
+		fontSize: 14,
 		fontWeight: '600',
 		color: '#111827',
-		marginBottom: 4,
 	},
 	scheduledTitle: {
 		fontSize: 12,
 		color: '#6B7280',
-		marginBottom: 8,
+		marginVertical: 2,
 	},
 	timeRow: {
 		flexDirection: 'row',
 		alignItems: 'center',
-		marginBottom: 8,
+		marginVertical: 4,
 	},
 	timeButton: {
 		flex: 1,
+		paddingVertical: 4,
+		paddingHorizontal: 8,
 		borderWidth: 1,
 		borderColor: '#D1D5DB',
-		borderRadius: 4,
-		padding: 8,
+		borderRadius: 6,
 		alignItems: 'center',
 	},
 	timeButtonText: {
 		fontSize: 12,
-		color: '#374151',
+		color: '#111827',
 	},
 	timeSeparator: {
-		marginHorizontal: 8,
+		marginHorizontal: 4,
 		color: '#6B7280',
 	},
 	actionsRow: {
@@ -976,82 +911,45 @@ const styles = StyleSheet.create({
 	},
 	actionButtons: {
 		flexDirection: 'row',
-		gap: 8,
+		alignItems: 'center',
 	},
 	actionButton: {
-		width: 32,
-		height: 32,
-		borderRadius: 4,
-		backgroundColor: '#F3F4F6',
-		justifyContent: 'center',
-		alignItems: 'center',
+		padding: 4,
+		marginLeft: 4,
+		backgroundColor: '#E5E7EB',
+		borderRadius: 6,
 	},
 	actionButtonDisabled: {
 		opacity: 0.3,
 	},
 	actionButtonText: {
-		fontSize: 16,
+		fontSize: 12,
+		fontWeight: '600',
 		color: '#111827',
 	},
-	deleteButton: {
-		backgroundColor: '#FEE2E2',
+	dayTotal: {
+		alignItems: 'flex-end',
+		marginVertical: 8,
 	},
-	deleteButtonText: {
-		fontSize: 16,
-		color: '#EF4444',
-	},
-	daySummary: {
-		flexDirection: 'row',
-		justifyContent: 'space-between',
-		alignItems: 'center',
-		backgroundColor: '#F3F4F6',
-		padding: 16,
-		borderTopWidth: 1,
-		borderTopColor: '#E5E7EB',
-	},
-	summaryText: {
-		fontSize: 14,
-		color: '#6B7280',
-	},
-	summaryTotal: {
-		fontSize: 18,
-		fontWeight: 'bold',
-		color: '#10B981',
-	},
-	bottomActions: {
-		flexDirection: 'row',
-		padding: 16,
-		backgroundColor: '#FFFFFF',
-		borderTopWidth: 1,
-		borderTopColor: '#E5E7EB',
-		gap: 12,
-	},
-	secondaryButton: {
-		flex: 1,
-		borderWidth: 1,
-		borderColor: '#D1D5DB',
-		borderRadius: 8,
-		padding: 16,
-		alignItems: 'center',
-	},
-	secondaryButtonText: {
-		color: '#374151',
+	dayTotalText: {
 		fontSize: 16,
 		fontWeight: '600',
+		color: '#111827',
 	},
-	createButton: {
-		flex: 2,
+	emptyState: {
+		alignItems: 'center',
+		paddingVertical: 20,
 	},
-	buttonDisabled: {
-		opacity: 0.5,
+	emptyStateText: {
+		fontSize: 14,
+		fontWeight: '500',
+		color: '#6B7280',
+	},
+	emptyStateSubtext: {
+		fontSize: 12,
+		color: '#9CA3AF',
 	},
 });
 
-export default ItineraryBuilder; s: {
-	backgroundColor: '#FFFFFF',
-		borderBottomWidth: 1,
-			borderBottomColor: '#E5E7EB',
-				paddingHorizontal: 16,
-					paddingVertical: 12,
-  },
-dayTab
+
+export default ItineraryBuilder;
