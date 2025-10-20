@@ -84,9 +84,26 @@ const getRecommendedActivitiesByCountry = async (userId: string, countryId: numb
 }
 
 
+const toggleLikeActivity = async (userId: string, activity_id: string, liked: boolean) => {
+	try {
+		const response = await api.put("/activity", { "liked": liked }, {
+			params: {
+				user_id: userId,
+				activity_id: activity_id
+
+			}
+		})
+		return response.data;
+	} catch (err) {
+		console.error("failed to toggle like: ", err);
+	}
+}
+
+
 export default {
 	getActivitiesByItinerary,
 	getActivitiesByCountry,
 	createActivity,
-	getRecommendedActivitiesByCountry
+	getRecommendedActivitiesByCountry,
+	toggleLikeActivity
 }

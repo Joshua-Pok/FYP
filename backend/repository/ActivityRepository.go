@@ -3,6 +3,7 @@ package repository
 import (
 	"database/sql"
 	"log"
+	"sort"
 
 	"github.com/Joshua-Pok/FYP-backend/models"
 	"github.com/lib/pq"
@@ -83,14 +84,15 @@ func (r *ActivityRepository) GetActivitiesByIds(ids []string) ([]models.Activity
 	return activities, nil
 }
 
-func (r *ActivityRepository) GetActivitiesByItinerary(itineraryID int) ([]models.Activity, error) {
-
+func (r *ActivityRepository) GetActivitiesByItinerary(itineraryID int) ([]models.ItineraryDay, error) {
 	query := `
-
-	SELECT a.id, a.name, a.title, a.price, a.address, a.imageurl, a.country_id
-	FROM activity a
-	JOIN itinerary_activity ia ON a.id = ia.activity_id
-	WHERE ia.itinerary_id = $1
+		SELECT 
+			a.id, a.name, a.title, a.price, a.address, a.imageurl, a.country_id,
+			ia.day_number, ia.start_time, ia.end_time, ia.order_in_day
+		FROM activity a
+		JOIN itinerary_activity ia ON a.id = ia.activity_id
+		WHERE ia.itinerary_id = $1
+		ORDER BY ia.day_number, ia.start_time NULLS LAST, ia.order_in_day NULLS LAST
 	`
 
 	rows, err := r.db.Query(query, itineraryID)
@@ -98,25 +100,49 @@ func (r *ActivityRepository) GetActivitiesByItinerary(itineraryID int) ([]models
 		return nil, err
 	}
 	defer rows.Close()
-	var activities []models.Activity
+
+	dayMap := make(map[int][]models.ActivityWithDay)
+
 	for rows.Next() {
-		var a models.Activity
+		var awd models.ActivityWithDay
 		if err := rows.Scan(
-			&a.ID,
-			&a.Name,
-			&a.Title,
-			&a.Price,
-			&a.Address,
-			&a.ImageURL,
-			&a.CountryID,
+			&awd.Activity.ID,
+			&awd.Activity.Name,
+			&awd.Activity.Title,
+			&awd.Activity.Price,
+			&awd.Activity.Address,
+			&awd.Activity.ImageURL,
+			&awd.Activity.CountryID,
+			&awd.DayNumber,
+			&awd.StartTime,
+			&awd.EndTime,
+			&awd.OrderInDay,
 		); err != nil {
 			return nil, err
-
 		}
-		activities = append(activities, a)
 
+		dayMap[awd.DayNumber] = append(dayMap[awd.DayNumber], awd)
 	}
-	return activities, rows.Err()
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	// Convert map to a sorted slice
+	var itineraryDays []models.ItineraryDay
+	for day, activities := range dayMap {
+		itineraryDays = append(itineraryDays, models.ItineraryDay{
+			DayNumber:  day,
+			Activities: activities,
+		})
+	}
+
+	// Sort by day number (in case map iteration order varies)
+	sort.Slice(itineraryDays, func(i, j int) bool {
+		return itineraryDays[i].DayNumber < itineraryDays[j].DayNumber
+	})
+
+	return itineraryDays, nil
 }
 
 func (r *ActivityRepository) UpdateActivityImage(activityID int, imageURL string) error {

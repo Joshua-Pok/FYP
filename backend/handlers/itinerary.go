@@ -39,6 +39,38 @@ type ModifyItineraryRequest struct {
 	Activities  []ActivityScheduleInput `json:"activities"`
 }
 
+type ActivityResponse struct {
+	Activity struct {
+		ID        int     `json:"id"`
+		Name      string  `json:"name"`
+		Title     string  `json:"title"`
+		Price     float64 `json:"price"`
+		Address   string  `json:"address"`
+		ImageURL  string  `json:"imageurl"`
+		CountryID int     `json:"country_id"`
+	} `json:"activity"`
+	DayNumber  int     `json:"day_number"`
+	StartTime  *string `json:"start_time"`
+	EndTime    *string `json:"end_time"`
+	OrderInDay *int    `json:"order_in_day"`
+}
+
+type DayResponse struct {
+	DayNumber  int                `json:"day_number"`
+	Date       string             `json:"date"`
+	Activities []ActivityResponse `json:"activities"`
+}
+
+type ItineraryResponse struct {
+	ID          int           `json:"id"`
+	UserID      int           `json:"user_id"`
+	Title       string        `json:"title"`
+	Description string        `json:"description"`
+	StartDate   string        `json:"start_date"`
+	EndDate     string        `json:"end_date"`
+	Days        []DayResponse `json:"days"`
+}
+
 func NewItineraryHandler(itineraryRepo repository.ItineraryRepository) *ItineraryHandler {
 	return &ItineraryHandler{itineraryRepo: itineraryRepo}
 }
@@ -172,3 +204,82 @@ func (h *ItineraryHandler) ModifyItinerary(w http.ResponseWriter, r *http.Reques
 		"itinerary": itinerary,
 	})
 }
+
+func formatItineraryResponse(itinerary models.ItineraryWithDays) ItineraryResponse {
+	response := ItineraryResponse{
+		ID:          itinerary.Id,
+		UserID:      itinerary.User_id,
+		Title:       itinerary.Title,
+		Description: itinerary.Description,
+		StartDate:   itinerary.StartDate.Format("2006-01-02"),
+		EndDate:     itinerary.EndDate.Format("2006-01-02"),
+		Days:        make([]DayResponse, 0),
+	}
+
+	currentDate := itinerary.StartDate
+	for _, day := range itinerary.Days {
+		dayResponse := DayResponse{
+			DayNumber:  day.DayNumber,
+			Date:       currentDate.Format("2006-01-02"),
+			Activities: make([]ActivityResponse, 0),
+		}
+
+		for _, awd := range day.Activities {
+			actResp := ActivityResponse{
+				DayNumber:  awd.DayNumber,
+				OrderInDay: awd.OrderInDay,
+			}
+			actResp.Activity.ID = awd.Activity.ID
+			actResp.Activity.Name = awd.Activity.Name
+			actResp.Activity.Title = awd.Activity.Title
+			actResp.Activity.Price = awd.Activity.Price
+			actResp.Activity.Address = awd.Activity.Address
+			actResp.Activity.ImageURL = awd.Activity.ImageURL
+			actResp.Activity.CountryID = awd.Activity.CountryID
+
+			if awd.StartTime != nil {
+				startTimeStr := awd.StartTime.Format("15:04:05")
+				actResp.StartTime = &startTimeStr
+			}
+			if awd.EndTime != nil {
+				endTimeStr := awd.EndTime.Format("15:04:05")
+				actResp.EndTime = &endTimeStr
+			}
+
+			dayResponse.Activities = append(dayResponse.Activities, actResp)
+		}
+
+		response.Days = append(response.Days, dayResponse)
+		currentDate = currentDate.AddDate(0, 0, 1)
+	}
+
+	return response
+}
+
+// func (h *ItineraryHandler) GetItineraryWithDays(w http.ResponseWriter, r *http.Request) {
+// 	itineraryIDstr := r.URL.Query().Get("itinerary_id")
+// 	if itineraryIDstr == "" {
+// 		http.Error(w, "Missing itinerary_id", http.StatusBadRequest)
+// 		return
+// 	}
+//
+// 	itineraryID, err := strconv.Atoi(itineraryIDstr)
+// 	if err != nil {
+// 		http.Error(w, "Invalid Itinerary_id parameter", http.StatusBadRequest)
+// 		return
+// 	}
+//
+// 	itinerary, err := h.itineraryRepo.GetItineraryWithDays(itineraryID)
+// 	if err != nil {
+// 		http.Error(w, "Failed to fetch itinerary", http.StatusInternalServerError)
+// 		return
+// 	}
+//
+// 	response := formatItineraryResponse(itinerary)
+//
+// 	w.Header().Set("Content-Type", "application/json")
+// 	json.NewEncoder(w).Encode(map[string]interface{}{
+// 		"success":   true,
+// 		"itinerary": response,
+// 	})
+// }
