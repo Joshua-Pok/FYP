@@ -15,7 +15,7 @@ func NewItineraryRepository(db *sql.DB) *ItineraryRepository {
 	return &ItineraryRepository{db: db}
 }
 
-func (r *ItineraryRepository) CreateItinerary(userId int, title, description string, startDate, endDate time.Time, activities []models.Activity) (models.Itinerary, error) {
+func (r *ItineraryRepository) CreateItinerary(userId int, title, description string, startDate, endDate time.Time, activities []models.ActivityWithDay) (models.Itinerary, error) {
 
 	var itinerary models.Itinerary
 
@@ -41,19 +41,26 @@ func (r *ItineraryRepository) CreateItinerary(userId int, title, description str
 	itinerary.Description = description
 	itinerary.StartDate = startDate
 	itinerary.EndDate = endDate
-	itinerary.Activities = activities
 
-	stmt, err := tx.Prepare(`INSERT INTO itinerary_activity(itinerary_id, activity_id) VALUES ($1, $2)`)
+	stmt, err := tx.Prepare(`INSERT INTO itinerary_activity(itinerary_id, activity_id, day_number, start_time, end_time, order_in_day) VALUES ($1, $2, $3, $4, $5, $6)`)
 	if err != nil {
 		return itinerary, err
 	}
 	defer stmt.Close()
 
-	for _, activity := range activities {
-		if _, err := stmt.Exec(itinerary.Id, activity.ID); err != nil {
+	for _, activityWithDay := range activities {
+		if _, err := stmt.Exec(
+			itinerary.Id,
+			activityWithDay.Activity.ID,
+			activityWithDay.DayNumber,
+			activityWithDay.StartTime,
+			activityWithDay.EndTime,
+			activityWithDay.OrderInDay,
+		); err != nil {
 			return itinerary, err
 		}
 	}
+	itinerary.ActivitiesWithDay = activities
 	return itinerary, nil
 
 }
@@ -74,22 +81,40 @@ func (r *ItineraryRepository) GetItinerariesByUser(userId int) ([]models.Itinera
 			return nil, err
 		}
 
-		activityQuery := `SELECT a.id, a.name, a.title, a.price, a.address, a.imageurl, a.country_id FROM activity a JOIN itinerary_activity ia ON a.id=ia.activity_id WHERE ia.itinerary_id = $1`
+		activityQuery := `SELECT 
+                a.id, a.name, a.title, a.price, a.address, a.imageurl, a.country_id,
+                ia.day_number, ia.start_time, ia.end_time, ia.order_in_day
+            FROM activity a 
+            JOIN itinerary_activity ia ON a.id = ia.activity_id 
+            WHERE ia.itinerary_id = $1
+            ORDER BY ia.day_number, ia.order_in_day NULLS LAST, ia.start_time NULLS LAST`
 		actRows, err := r.db.Query(activityQuery, itinerary.Id)
 		if err != nil {
 			return nil, err
 		}
-		var activities []models.Activity
+		var activitiesWithDay []models.ActivityWithDay
 		for actRows.Next() {
-			var act models.Activity
-			if err := actRows.Scan(&act.ID, &act.Name, &act.Title, &act.Price, &act.Address, &act.ImageURL, &act.CountryID); err != nil {
+			var awd models.ActivityWithDay
+			if err := actRows.Scan(
+				&awd.Activity.ID,
+				&awd.Activity.Name,
+				&awd.Activity.Title,
+				&awd.Activity.Price,
+				&awd.Activity.Address,
+				&awd.Activity.ImageURL,
+				&awd.Activity.CountryID,
+				&awd.DayNumber,
+				&awd.StartTime,
+				&awd.EndTime,
+				&awd.OrderInDay,
+			); err != nil {
 				actRows.Close()
 				return nil, err
 			}
-			activities = append(activities, act)
+			activitiesWithDay = append(activitiesWithDay, awd)
 		}
 		actRows.Close()
-		itinerary.Activities = activities
+		itinerary.ActivitiesWithDay = activitiesWithDay
 		itineraries = append(itineraries, itinerary)
 	}
 
@@ -100,7 +125,7 @@ func (r *ItineraryRepository) GetItinerariesByUser(userId int) ([]models.Itinera
 	return itineraries, nil
 }
 
-func (r *ItineraryRepository) ModifyItinerary(id int, title string, description string, startDate string, endDate string, activities []models.Activity) (models.Itinerary, error) {
+func (r *ItineraryRepository) ModifyItinerary(id int, title string, description string, startDate string, endDate string, activities []models.ActivityWithDay) (models.Itinerary, error) {
 	var itinerary models.Itinerary
 
 	tx, err := r.db.Begin()
@@ -137,18 +162,18 @@ RETURNING id, user_id, title, description, start_date, end_date
 		return itinerary, err
 	}
 
-	stmt, err := tx.Prepare(`INSERT INTO itinerary_activity(itinerary_id, activity_id) VALUES ($1, $2)`)
+	stmt, err := tx.Prepare(`INSERT INTO itinerary_activity(itinerary_id, activity_id, day_number, start_time, end_time, order_in_day) VALUES ($1, $2, $3, $4, $5,$6)`)
 	if err != nil {
 		return itinerary, err
 	}
 	defer stmt.Close()
 
-	for _, activity := range activities {
-		if _, err := stmt.Exec(itinerary.Id, activity.ID); err != nil {
+	for _, activityWithDay := range activities {
+		if _, err := stmt.Exec(itinerary.Id, activityWithDay.Activity.ID, activityWithDay.DayNumber, activityWithDay.StartTime, activityWithDay.EndTime, activityWithDay.OrderInDay); err != nil {
 			return itinerary, err
 		}
 	}
-	itinerary.Activities = activities
+	itinerary.ActivitiesWithDay = activities
 
 	return itinerary, nil
 

@@ -107,17 +107,23 @@ func (h *ActivityHandler) GetActivitiesByItinerary(w http.ResponseWriter, r *htt
 		http.Error(w, "Invalid itinerary_id parameter", http.StatusBadRequest)
 		return
 	}
-	activities, err := h.activityRepo.GetActivitiesByItinerary(itineraryID)
+
+	activitiesWithDay, err := h.activityRepo.GetActivitiesByItineraryWSchedule(itineraryID)
 	if err != nil {
-		http.Error(w, "Failed to fetch activities", http.StatusInternalServerError)
+		http.Error(w, "failed to fetch activities", http.StatusInternalServerError)
 		return
 	}
+	// activities, err := h.activityRepo.GetActivitiesByItinerary(itineraryID)
+	// if err != nil {
+	// 	http.Error(w, "Failed to fetch activities", http.StatusInternalServerError)
+	// 	return
+	// }
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success":    true,
 		"itinerary":  itineraryID,
-		"activities": activities,
+		"activities": activitiesWithDay,
 	})
 }
 

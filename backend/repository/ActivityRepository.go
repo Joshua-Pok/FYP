@@ -160,3 +160,42 @@ func (r *ActivityRepository) GetActivitiesByCountry(countryID int) ([]models.Act
 
 	return activities, nil
 }
+
+func (r *ActivityRepository) GetActivitiesByItineraryWSchedule(itineraryID int) ([]models.ActivityWithDay, error) {
+	query := `SELECT 
+        a.id, a.name, a.title, a.price, a.address, a.imageurl, a.country_id,
+        ia.day_number, ia.start_time, ia.end_time, ia.order_in_day
+    FROM activity a
+    JOIN itinerary_activity ia ON a.id = ia.activity_id
+    WHERE ia.itinerary_id = $1
+    ORDER BY ia.day_number, ia.order_in_day NULLS LAST, ia.start_time NULLS LAST`
+
+	rows, err := r.db.Query(query, itineraryID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var activitiesWithDay []models.ActivityWithDay
+	for rows.Next() {
+		var awd models.ActivityWithDay
+		err := rows.Scan(
+			&awd.Activity.ID,
+			&awd.Activity.Name,
+			&awd.Activity.Title,
+			&awd.Activity.Price,
+			&awd.Activity.Address,
+			&awd.Activity.ImageURL,
+			&awd.Activity.CountryID,
+			&awd.DayNumber,
+			&awd.StartTime,
+			&awd.EndTime,
+			&awd.OrderInDay,
+		)
+		if err != nil {
+			return nil, err
+		}
+		activitiesWithDay = append(activitiesWithDay, awd)
+	}
+	return activitiesWithDay, rows.Err()
+}

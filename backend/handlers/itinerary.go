@@ -13,22 +13,30 @@ type ItineraryHandler struct {
 	itineraryRepo repository.ItineraryRepository
 }
 
+type ActivityScheduleInput struct {
+	ActivityID int     `json:"activity_id"`
+	DayNumber  int     `json:"day_number"`
+	StartTime  *string `json:"start_time"`
+	EndTime    *string `json:"end_time"`
+	OrderInDay *int    `json:"order_in_day"`
+}
+
 type CreateItineraryRequest struct {
-	UserID      int               `json:"user_id"`
-	Title       string            `json:"title"`
-	Description string            `json:"description"`
-	StartDate   string            `json:"start_date"`
-	EndDate     string            `json:"end_date"`
-	Activities  []models.Activity `json:"activities"`
+	UserID      int                     `json:"user_id"`
+	Title       string                  `json:"title"`
+	Description string                  `json:"description"`
+	StartDate   string                  `json:"start_date"`
+	EndDate     string                  `json:"end_date"`
+	Activities  []ActivityScheduleInput `json:"activities"`
 }
 
 type ModifyItineraryRequest struct {
-	Id          int               `json:"id"`
-	Title       string            `json:"title"`
-	Description string            `json:"description"`
-	StartDate   string            `json:"startDate"`
-	EndDate     string            `json:"endDate"`
-	Activities  []models.Activity `json:"activities"`
+	Id          int                     `json:"id"`
+	Title       string                  `json:"title"`
+	Description string                  `json:"description"`
+	StartDate   string                  `json:"startDate"`
+	EndDate     string                  `json:"endDate"`
+	Activities  []ActivityScheduleInput `json:"activities"`
 }
 
 func NewItineraryHandler(itineraryRepo repository.ItineraryRepository) *ItineraryHandler {
@@ -56,7 +64,34 @@ func (h *ItineraryHandler) CreateItinerary(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	itinerary, err := h.itineraryRepo.CreateItinerary(req.UserID, req.Title, req.Description, startDate, endDate, req.Activities)
+	var activitiesWithDay []models.ActivityWithDay
+	for _, actInput := range req.Activities {
+		awd := models.ActivityWithDay{
+			Activity: models.Activity{
+				ID: actInput.ActivityID,
+			},
+			DayNumber:  actInput.DayNumber,
+			OrderInDay: actInput.OrderInDay,
+		}
+
+		if actInput.StartTime != nil && *actInput.StartTime != "" {
+			startTime, err := time.Parse("15:04", *actInput.StartTime)
+			if err == nil {
+				awd.StartTime = &startTime
+			}
+		}
+		if actInput.EndTime != nil && *actInput.EndTime != "" {
+			endTime, err := time.Parse("15:04", *actInput.EndTime)
+			if err == nil {
+				awd.EndTime = &endTime
+			}
+		}
+
+		activitiesWithDay = append(activitiesWithDay, awd)
+
+	}
+
+	itinerary, err := h.itineraryRepo.CreateItinerary(req.UserID, req.Title, req.Description, startDate, endDate, activitiesWithDay)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to create itinerary"})
@@ -101,7 +136,32 @@ func (h *ItineraryHandler) ModifyItinerary(w http.ResponseWriter, r *http.Reques
 		http.Error(w, "Invalid user id", http.StatusBadRequest)
 		return
 	}
-	itinerary, err := h.itineraryRepo.ModifyItinerary(itineraryID, req.Title, req.Description, req.StartDate, req.EndDate, req.Activities)
+
+	var activitiesWithDay []models.ActivityWithDay
+	for _, actInput := range req.Activities {
+		awd := models.ActivityWithDay{
+			Activity: models.Activity{
+				ID: actInput.ActivityID,
+			},
+			DayNumber:  actInput.DayNumber,
+			OrderInDay: actInput.OrderInDay,
+		}
+		if actInput.StartTime != nil && *actInput.StartTime != "" {
+			startTime, err := time.Parse("15:04", *actInput.StartTime)
+			if err == nil {
+				awd.StartTime = &startTime
+			}
+		}
+		if actInput.EndTime != nil && *actInput.EndTime != "" {
+			endTime, err := time.Parse("15:04", *actInput.EndTime)
+			if err == nil {
+				awd.EndTime = &endTime
+			}
+		}
+		activitiesWithDay = append(activitiesWithDay, awd)
+	}
+
+	itinerary, err := h.itineraryRepo.ModifyItinerary(itineraryID, req.Title, req.Description, req.StartDate, req.EndDate, activitiesWithDay)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})

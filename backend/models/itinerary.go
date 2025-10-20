@@ -3,12 +3,13 @@ package models
 import "time"
 
 type Itinerary struct {
-	Id          int        `json:"id" db:"id"`
-	User_id     int        `json:"user_id" db:"user_id"`
-	Title       string     `json:"title" db:"Title"`
-	Description string     `json:"description" db:"description"`
-	Activities  []Activity `json:"Activities" db:"Activities"`
-	StartDate   time.Time  `json:"start_date" db:"start_date"`
-	EndDate     time.Time  `json:"end_date" db:"end_date"`
-	Created_by  User       `json:"created_by" db:"created_by"`
+	Id                int               `json:"id" db:"id"`
+	User_id           int               `json:"user_id" db:"user_id"`
+	Title             string            `json:"title" db:"Title"`
+	Description       string            `json:"description" db:"description"`
+	Activities        []Activity        `json:"Activities" db:"Activities"`
+	ActivitiesWithDay []ActivityWithDay `json:"ActivitiesWithDay" db:"ActivitiesWithDay"`
+	StartDate         time.Time         `json:"start_date" db:"start_date"`
+	EndDate           time.Time         `json:"end_date" db:"end_date"`
+	Created_by        User              `json:"created_by" db:"created_by"`
 }
