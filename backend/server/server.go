@@ -36,7 +36,7 @@ func (s *Server) Start() error {
 
 	activityHandler := handlers.NewActivityhandler(*activityRepo, minioService, gorseService, cacheService)
 	userHandler := handlers.NewUserHandler(userRepo, gorseService)
-	itineraryHandler := handlers.NewItineraryHandler(*itineraryRepo)
+	itineraryHandler := handlers.NewItineraryHandler(*itineraryRepo, *&activityHandler)
 	personalityHandler := handlers.NewPersonalityHandler(personalityRepo, gorseService)
 	countryHandler := handlers.NewCountryHandler(countryRepo)
 

@@ -149,6 +149,19 @@ func (h *ActivityHandler) GetActivityById(w http.ResponseWriter, r *http.Request
 	json.NewEncoder(w).Encode(activity)
 }
 
+func (h *ActivityHandler) GetRecommendationsForUser(userId string, categoryId string, count int) ([]models.Activity, error) {
+	ids, err := h.gorseService.GetRecommendationsByUserAndCategory(userId, categoryId, count)
+	if err != nil {
+		return nil, err
+	}
+
+	activities, err := h.activityRepo.GetActivitiesByIds(ids)
+	if err != nil {
+		return nil, err
+	}
+	return activities, nil
+}
+
 func (h *ActivityHandler) GetRecommendedActivities(w http.ResponseWriter, r *http.Request) {
 	userId := r.URL.Query().Get("user_id")
 	if userId == "" {

@@ -29,6 +29,14 @@ interface ActivityWithDay {
 	order_in_day?: number | null;
 }
 
+interface getRecommendedItineraryReqeust {
+	user_id: number;
+	title?: string;
+	description?: string;
+	start_date: string;
+	num_days: number;
+}
+
 
 interface ItineraryDay {
 	day_number: number;
@@ -83,6 +91,12 @@ const createItinerary = async (data: CreateItineraryRequest): Promise<Itinerary>
 const modifyItinerary = async (data: ModifyItineraryRequest) => {
 	const response = await api.put("/itinerary", data);
 	return response.data.itinerary;
+}
+
+
+const getRecommendedItinerary = async (data: getRecommendedItineraryReqeust) => {
+	const response = await api.get("/recommendation", data);
+	return response.data.data
 }
 
 
