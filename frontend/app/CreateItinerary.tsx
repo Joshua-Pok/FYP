@@ -9,7 +9,9 @@ import {
 	SafeAreaView,
 	Modal,
 	Platform,
-	StyleSheet
+	StyleSheet,
+	ActivityIndicator,
+	Alert
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import activityService from '@/services/activityService';
@@ -32,6 +34,7 @@ const ItineraryBuilder = () => {
 	const [countries, setCountries] = useState([]);
 	const [availableActivities, setAvailableActivities] = useState([]);
 	const { user } = useUser();
+	const [loadingRecommendations, setLoadingRecommendations] = useState(false);
 
 	// Date picker states
 	const [showStartDatePicker, setShowStartDatePicker] = useState(false);
@@ -50,7 +53,7 @@ const ItineraryBuilder = () => {
 		const fetchCountries = async () => {
 			try {
 				const res = await countryService.GetAllCountries();
-				setCountries(res); // assuming res is an array of {id, name}
+				setCountries(res);
 			} catch (err) {
 				console.error('Failed to fetch countries', err);
 			}
@@ -84,7 +87,7 @@ const ItineraryBuilder = () => {
 		}
 	}, [totalDays, currentDay]);
 
-	// Filter activities by selected country (already fetched dynamically)
+	// Filter activities by selected country
 	const filteredActivities = availableActivities;
 
 	// Get activities for current day
@@ -185,6 +188,76 @@ const ItineraryBuilder = () => {
 	// Calculate total cost for current day
 	const dayTotal = currentDayActivities.reduce((sum, act) => sum + act.price, 0);
 
+	// Handle AI Recommendations
+	const handleAIRecommendations = async () => {
+		if (!itineraryInfo.countryId) {
+			Alert.alert('Missing Information', 'Please select a country first');
+			return;
+		}
+
+		if (totalDays <= 0) {
+			Alert.alert('Missing Information', 'Please set valid start and end dates');
+			return;
+		}
+
+		Alert.alert(
+			'AI Recommendations',
+			'This will replace your current itinerary with AI-generated recommendations. Continue?',
+			[
+				{ text: 'Cancel', style: 'cancel' },
+				{
+					text: 'Continue',
+					onPress: async () => {
+						setLoadingRecommendations(true);
+						try {
+							const payload = {
+								user_id: user.id,
+								category_id: parseInt(itineraryInfo.countryId), // Using country_id as category_id
+								title: itineraryInfo.title || 'AI-Generated Itinerary',
+								description: itineraryInfo.description || 'Personalized itinerary based on your preferences',
+								start_date: itineraryInfo.startDate.toISOString().split('T')[0],
+								num_days: totalDays,
+							};
+
+							const response = await itineraryService.synthesizeRecommendedItinerary(payload);
+
+							if (response && response.data) {
+								// Parse the returned itinerary and populate selectedActivities
+								const newActivities = [];
+
+								if (response.data.days && Array.isArray(response.data.days)) {
+									response.data.days.forEach(day => {
+										day.activities.forEach(act => {
+											const startTime = act.start_time ? new Date(`2000-01-01T${act.start_time}`) : null;
+											const endTime = act.end_time ? new Date(`2000-01-01T${act.end_time}`) : null;
+
+											newActivities.push({
+												...act.activity,
+												dayNumber: act.day_number,
+												orderInDay: act.order_in_day || 1,
+												startTime: startTime,
+												endTime: endTime,
+												tempId: `${act.activity.id}-${act.day_number}-${Date.now()}`,
+											});
+										});
+									});
+								}
+
+								setSelectedActivities(newActivities);
+								Alert.alert('Success', 'AI recommendations loaded successfully!');
+							}
+						} catch (err) {
+							console.error('Failed to get AI recommendations', err);
+							Alert.alert('Error', 'Failed to load AI recommendations. Please try again.');
+						} finally {
+							setLoadingRecommendations(false);
+						}
+					}
+				}
+			]
+		);
+	};
+
 	// Submit itinerary
 	const handleSubmit = async () => {
 		const formattedActivities = selectedActivities.map(act => ({
@@ -196,7 +269,7 @@ const ItineraryBuilder = () => {
 		}));
 
 		const payload = {
-			user_id: user!.id,
+			user_id: user.id,
 			title: itineraryInfo.title,
 			description: itineraryInfo.description,
 			start_date: itineraryInfo.startDate.toISOString().split('T')[0],
@@ -204,11 +277,14 @@ const ItineraryBuilder = () => {
 			activities: formattedActivities,
 		};
 
-		const response = await itineraryService.createItinerary(payload);
-
-
-		console.log('Submitting:', payload);
-		alert('Itinerary created! Check console for payload.');
+		try {
+			const response = await itineraryService.createItinerary(payload);
+			Alert.alert('Success', 'Itinerary created successfully!');
+			console.log('Created itinerary:', response);
+		} catch (err) {
+			console.error('Failed to create itinerary', err);
+			Alert.alert('Error', 'Failed to create itinerary. Please try again.');
+		}
 	};
 
 	// Open time picker
@@ -241,12 +317,6 @@ const ItineraryBuilder = () => {
 			}
 		}
 	};
-
-	// -----------------------------
-	// Step 1 UI (same as before)
-	// Step 2 UI (activities & scheduled list)
-	// Only change: use `countries` and `availableActivities` dynamically
-	// -----------------------------
 
 	return (
 		<SafeAreaView style={styles.container}>
@@ -397,182 +467,197 @@ const ItineraryBuilder = () => {
 					)}
 				</ScrollView>
 			) : (
-				<ScrollView style={styles.mainContent}>
-					{/* Planning Header */}
-					<View style={styles.planningHeader}>
-						<View>
-							<Text style={styles.planningTitle}>{itineraryInfo.title}</Text>
-							<Text style={styles.planningSubtitle}>
-								📍 {countries.find(c => c.id === parseInt(itineraryInfo.countryId))?.name} • {totalDays} days
-							</Text>
-						</View>
-						<TouchableOpacity onPress={() => setStep(1)}>
-							<Text style={styles.editButton}>Edit</Text>
-						</TouchableOpacity>
-					</View>
-
-					{/* Day Navigation */}
-					<View style={styles.dayNavigation}>
-						<TouchableOpacity
-							onPress={() => setCurrentDay(Math.max(1, currentDay - 1))}
-							disabled={currentDay === 1}
-							style={[styles.navButton, currentDay === 1 && styles.navButtonDisabled]}
-						>
-							<Text style={styles.navButtonText}>←</Text>
-						</TouchableOpacity>
-
-						<View style={styles.dayInfo}>
-							<Text style={styles.dayNumber}>Day {currentDay}</Text>
-							<Text style={styles.dayDate}>{getCurrentDate()}</Text>
+				<View style={{ flex: 1 }}>
+					<ScrollView style={styles.mainContent}>
+						{/* Planning Header */}
+						<View style={styles.planningHeader}>
+							<View>
+								<Text style={styles.planningTitle}>{itineraryInfo.title}</Text>
+								<Text style={styles.planningSubtitle}>
+									📍 {countries.find(c => c.id === parseInt(itineraryInfo.countryId))?.name} • {totalDays} days
+								</Text>
+							</View>
+							<TouchableOpacity onPress={() => setStep(1)}>
+								<Text style={styles.editButton}>Edit</Text>
+							</TouchableOpacity>
 						</View>
 
-						<TouchableOpacity
-							onPress={() => setCurrentDay(Math.min(totalDays, currentDay + 1))}
-							disabled={currentDay === totalDays}
-							style={[styles.navButton, currentDay === totalDays && styles.navButtonDisabled]}
-						>
-							<Text style={styles.navButtonText}>→</Text>
-						</TouchableOpacity>
-					</View>
+						{/* Day Navigation */}
+						<View style={styles.dayNavigation}>
+							<TouchableOpacity
+								onPress={() => setCurrentDay(Math.max(1, currentDay - 1))}
+								disabled={currentDay === 1}
+								style={[styles.navButton, currentDay === 1 && styles.navButtonDisabled]}
+							>
+								<Text style={styles.navButtonText}>←</Text>
+							</TouchableOpacity>
 
-					{/* Day Tabs */}
-					<ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dayTabs}>
-						{Array.from({ length: totalDays }, (_, i) => i + 1).map(day => {
-							const dayActivityCount = selectedActivities.filter(a => a.dayNumber === day).length;
-							return (
-								<TouchableOpacity
-									key={day}
-									style={[styles.dayTab, currentDay === day && styles.dayTabActive]}
-									onPress={() => setCurrentDay(day)}
-								>
-									<Text style={[styles.dayTabText, currentDay === day && styles.dayTabTextActive]}>
-										Day {day}
-										{dayActivityCount > 0 && ` (${dayActivityCount})`}
-									</Text>
-								</TouchableOpacity>
-							);
-						})}
-					</ScrollView>
+							<View style={styles.dayInfo}>
+								<Text style={styles.dayNumber}>Day {currentDay}</Text>
+								<Text style={styles.dayDate}>{getCurrentDate()}</Text>
+							</View>
 
-					{/* Available Activities */}
-					<View style={styles.activitiesSection}>
-						<Text style={styles.sectionTitle}>Available Activities ({filteredActivities.length})</Text>
-						<ScrollView horizontal showsHorizontalScrollIndicator={false}>
-							{filteredActivities.map(activity => (
-								<View key={activity.id} style={styles.activityCard}>
-									<Image source={{ uri: activity.imageurl }} style={styles.activityImage} />
-									<View style={styles.activityInfo}>
-										<Text style={styles.activityName} numberOfLines={1}>{activity.name}</Text>
-										<Text style={styles.activityTitle} numberOfLines={1}>{activity.title}</Text>
-										<View style={styles.activityFooter}>
-											<Text style={styles.activityPrice}>${activity.price}</Text>
-											<TouchableOpacity
-												style={styles.addButton}
-												onPress={() => addActivity(activity)}
-											>
-												<Text style={styles.addButtonText}>+ Add</Text>
-											</TouchableOpacity>
-										</View>
-									</View>
-								</View>
-							))}
+							<TouchableOpacity
+								onPress={() => setCurrentDay(Math.min(totalDays, currentDay + 1))}
+								disabled={currentDay === totalDays}
+								style={[styles.navButton, currentDay === totalDays && styles.navButtonDisabled]}
+							>
+								<Text style={styles.navButtonText}>→</Text>
+							</TouchableOpacity>
+						</View>
+
+						{/* Day Tabs */}
+						<ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dayTabs}>
+							{Array.from({ length: totalDays }, (_, i) => i + 1).map(day => {
+								const dayActivityCount = selectedActivities.filter(a => a.dayNumber === day).length;
+								return (
+									<TouchableOpacity
+										key={day}
+										style={[styles.dayTab, currentDay === day && styles.dayTabActive]}
+										onPress={() => setCurrentDay(day)}
+									>
+										<Text style={[styles.dayTabText, currentDay === day && styles.dayTabTextActive]}>
+											Day {day}
+											{dayActivityCount > 0 && ` (${dayActivityCount})`}
+										</Text>
+									</TouchableOpacity>
+								);
+							})}
 						</ScrollView>
-					</View>
 
-					{/* Scheduled Activities */}
-					<View style={styles.scheduledSection}>
-						<Text style={styles.sectionTitle}>Scheduled for Day {currentDay}</Text>
-						<ScrollView style={styles.scheduledList}>
-							{currentDayActivities.length === 0 ? (
-								<View style={styles.emptyState}>
-									<Text style={styles.emptyStateText}>No activities scheduled</Text>
-									<Text style={styles.emptyStateSubtext}>Add activities from above</Text>
-								</View>
-							) : (
-								currentDayActivities.map((activity, index) => (
-									<View key={activity.tempId} style={styles.scheduledActivity}>
-										<Image source={{ uri: activity.imageurl }} style={styles.scheduledImage} />
-										<View style={styles.scheduledInfo}>
-											<Text style={styles.scheduledName}>{activity.name}</Text>
-											<Text style={styles.scheduledTitle}>{activity.title}</Text>
-
-											{/* Time Display/Edit */}
-											<View style={styles.timeRow}>
+						{/* Available Activities */}
+						<View style={styles.activitiesSection}>
+							<Text style={styles.sectionTitle}>Available Activities ({filteredActivities.length})</Text>
+							<ScrollView horizontal showsHorizontalScrollIndicator={false}>
+								{filteredActivities.map(activity => (
+									<View key={activity.id} style={styles.activityCard}>
+										<Image source={{ uri: activity.imageurl }} style={styles.activityImage} />
+										<View style={styles.activityInfo}>
+											<Text style={styles.activityName} numberOfLines={1}>{activity.name}</Text>
+											<Text style={styles.activityTitle} numberOfLines={1}>{activity.title}</Text>
+											<View style={styles.activityFooter}>
+												<Text style={styles.activityPrice}>${activity.price}</Text>
 												<TouchableOpacity
-													style={styles.timeButton}
-													onPress={() => openTimePicker(activity.tempId, 'start')}
+													style={styles.addButton}
+													onPress={() => addActivity(activity)}
 												>
-													<Text style={styles.timeButtonText}>
-														{activity.startTime
-															? activity.startTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-															: 'Start Time'}
-													</Text>
-												</TouchableOpacity>
-												<Text style={styles.timeSeparator}>-</Text>
-												<TouchableOpacity
-													style={styles.timeButton}
-													onPress={() => openTimePicker(activity.tempId, 'end')}
-												>
-													<Text style={styles.timeButtonText}>
-														{activity.endTime
-															? activity.endTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-															: 'End Time'}
-													</Text>
+													<Text style={styles.addButtonText}>+ Add</Text>
 												</TouchableOpacity>
 											</View>
+										</View>
+									</View>
+								))}
+							</ScrollView>
+						</View>
 
-											<View style={styles.actionsRow}>
-												<Text style={styles.activityPrice}>${activity.price}</Text>
-												<View style={styles.actionButtons}>
+						{/* Scheduled Activities */}
+						<View style={styles.scheduledSection}>
+							<Text style={styles.sectionTitle}>Scheduled for Day {currentDay}</Text>
+							<ScrollView style={styles.scheduledList}>
+								{currentDayActivities.length === 0 ? (
+									<View style={styles.emptyState}>
+										<Text style={styles.emptyStateText}>No activities scheduled</Text>
+										<Text style={styles.emptyStateSubtext}>Add activities from above</Text>
+									</View>
+								) : (
+									currentDayActivities.map((activity, index) => (
+										<View key={activity.tempId} style={styles.scheduledActivity}>
+											<Image source={{ uri: activity.imageurl }} style={styles.scheduledImage} />
+											<View style={styles.scheduledInfo}>
+												<Text style={styles.scheduledName}>{activity.name}</Text>
+												<Text style={styles.scheduledTitle}>{activity.title}</Text>
+
+												{/* Time Display/Edit */}
+												<View style={styles.timeRow}>
 													<TouchableOpacity
-														onPress={() => moveActivity(activity.tempId, 'up')}
-														disabled={index === 0}
-														style={[styles.actionButton, index === 0 && styles.actionButtonDisabled]}
+														style={styles.timeButton}
+														onPress={() => openTimePicker(activity.tempId, 'start')}
 													>
-														<Text style={styles.actionButtonText}>↑</Text>
+														<Text style={styles.timeButtonText}>
+															{activity.startTime
+																? activity.startTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+																: 'Start Time'}
+														</Text>
 													</TouchableOpacity>
+													<Text style={styles.timeSeparator}>-</Text>
 													<TouchableOpacity
-														onPress={() => moveActivity(activity.tempId, 'down')}
-														disabled={index === currentDayActivities.length - 1}
-														style={[styles.actionButton, index === currentDayActivities.length - 1 && styles.actionButtonDisabled]}
+														style={styles.timeButton}
+														onPress={() => openTimePicker(activity.tempId, 'end')}
 													>
-														<Text style={styles.actionButtonText}>↓</Text>
+														<Text style={styles.timeButtonText}>
+															{activity.endTime
+																? activity.endTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+																: 'End Time'}
+														</Text>
 													</TouchableOpacity>
-													<TouchableOpacity
-														onPress={() => removeActivity(activity.tempId)}
-														style={styles.actionButton}
-													>
-														<Text style={styles.actionButtonText}>✕</Text>
-													</TouchableOpacity>
+												</View>
+
+												<View style={styles.actionsRow}>
+													<Text style={styles.activityPrice}>${activity.price}</Text>
+													<View style={styles.actionButtons}>
+														<TouchableOpacity
+															onPress={() => moveActivity(activity.tempId, 'up')}
+															disabled={index === 0}
+															style={[styles.actionButton, index === 0 && styles.actionButtonDisabled]}
+														>
+															<Text style={styles.actionButtonText}>↑</Text>
+														</TouchableOpacity>
+														<TouchableOpacity
+															onPress={() => moveActivity(activity.tempId, 'down')}
+															disabled={index === currentDayActivities.length - 1}
+															style={[styles.actionButton, index === currentDayActivities.length - 1 && styles.actionButtonDisabled]}
+														>
+															<Text style={styles.actionButtonText}>↓</Text>
+														</TouchableOpacity>
+														<TouchableOpacity
+															onPress={() => removeActivity(activity.tempId)}
+															style={styles.actionButton}
+														>
+															<Text style={styles.actionButtonText}>✕</Text>
+														</TouchableOpacity>
+													</View>
 												</View>
 											</View>
 										</View>
-									</View>
-								))
-							)}
-						</ScrollView>
+									))
+								)}
+							</ScrollView>
 
-						{/* Day Total */}
-						<View style={styles.dayTotal}>
-							<Text style={styles.dayTotalText}>Total: ${dayTotal}</Text>
+							{/* Day Total */}
+							<View style={styles.dayTotal}>
+								<Text style={styles.dayTotalText}>Total: ${dayTotal}</Text>
+							</View>
+
+							{/* Submit Button */}
+							<TouchableOpacity style={styles.primaryButton} onPress={handleSubmit}>
+								<Text style={styles.primaryButtonText}>Submit Itinerary</Text>
+							</TouchableOpacity>
 						</View>
 
-						{/* Submit Button */}
-						<TouchableOpacity style={styles.primaryButton} onPress={handleSubmit}>
-							<Text style={styles.primaryButtonText}>Submit Itinerary</Text>
-						</TouchableOpacity>
-					</View>
+						{/* Time Picker */}
+						{showTimePicker && (
+							<DateTimePicker
+								value={new Date()}
+								mode="time"
+								display="default"
+								onChange={onTimeChange}
+							/>
+						)}
+					</ScrollView>
 
-					{/* Time Picker */}
-					{showTimePicker && (
-						<DateTimePicker
-							value={new Date()}
-							mode="time"
-							display="default"
-							onChange={onTimeChange}
-						/>
-					)}
-				</ScrollView>
+					{/* FAB Button for AI Recommendations */}
+					<TouchableOpacity
+						style={styles.fab}
+						onPress={handleAIRecommendations}
+						disabled={loadingRecommendations}
+					>
+						{loadingRecommendations ? (
+							<ActivityIndicator color="#FFFFFF" />
+						) : (
+							<Text style={styles.fabText}>✨ AI</Text>
+						)}
+					</TouchableOpacity>
+				</View>
 			)}
 		</SafeAreaView>
 	);

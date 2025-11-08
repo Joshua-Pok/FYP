@@ -41,7 +41,7 @@ export default function QuizScreen() {
 	const [fadeAnim] = useState(new Animated.Value(1));
 	const [completed, setCompleted] = useState(false);
 	const { user } = useUser();
-	const userId = user!.id;
+	const userId = user?.id || 0;
 
 	const handleSelect = (value: number) => {
 		const currentQuestion = questions[currentIndex];

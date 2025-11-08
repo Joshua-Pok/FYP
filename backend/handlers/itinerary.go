@@ -16,6 +16,7 @@ type ItineraryHandler struct {
 
 type SynthesizeRecommendedItineraryRequest struct {
 	UserID      int    `json:"user_id"`
+	CategoryID  int    `json:"category_id"`
 	Title       string `json:"title"`
 	Description string `json:"description"`
 	StartDate   string `json:"start_date"`
@@ -248,7 +249,8 @@ func formatItineraryResponse(itinerary models.ItineraryWithDays) ItineraryRespon
 			actResp.Activity.CountryID = awd.Activity.CountryID
 
 			if awd.StartTime != nil {
-				startTimeStr := awd.StartTime.Format("15:04:05") actResp.StartTime = &startTimeStr
+				startTimeStr := awd.StartTime.Format("15:04:05")
+				actResp.StartTime = &startTimeStr
 			}
 			if awd.EndTime != nil {
 				endTimeStr := awd.EndTime.Format("15:04:05")
@@ -291,7 +293,8 @@ func (h *ItineraryHandler) SynthesizeRecommendedItinerary(w http.ResponseWriter,
 
 	totalActivitiesNeeded := req.NumDays * 3
 	userIdStr := strconv.Itoa(req.UserID)
-	activities, err := h.activityHandler.GetRecommendationsForUser(userIdStr, totalActivitiesNeeded)
+	categoryIdStr := strconv.Itoa(req.CategoryID)
+	activities, err := h.activityHandler.GetRecommendationsForUser(userIdStr, categoryIdStr, totalActivitiesNeeded)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": "failed to get recommendations"})

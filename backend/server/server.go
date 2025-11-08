@@ -48,6 +48,7 @@ func (s *Server) Start() error {
 	mux.HandleFunc("/country", s.handleCountry(countryHandler))
 	mux.HandleFunc("/login", userHandler.Login)
 	mux.HandleFunc("/signup", userHandler.CreateUser)
+	mux.HandleFunc("/recommend/itinerary", itineraryHandler.SynthesizeRecommendedItinerary)
 
 	handler := middleware.CORS(mux)
 	addr := ":" + s.config.Server.Port
