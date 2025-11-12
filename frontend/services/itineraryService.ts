@@ -63,7 +63,7 @@ interface CreateItineraryRequest {
 	description: string;
 	start_date: string; //ISO string
 	end_date: string; //ISO string
-	activities: ActivityScheduleInput;
+	activities: ActivityScheduleInput[];
 }
 
 
@@ -95,13 +95,14 @@ const modifyItinerary = async (data: ModifyItineraryRequest) => {
 
 
 const getRecommendedItinerary = async (data: getRecommendedItineraryReqeust) => {
-	const response = await api.get("/recommendation", data);
-	return response.data.data
-}
+	const response = await api.post("/recommend/itinerary", data);
+	return response.data.data;
+};
 
 
 export default {
 	getItinerariesByUser,
 	createItinerary,
-	modifyItinerary
+	modifyItinerary,
+	getRecommendedItinerary
 }

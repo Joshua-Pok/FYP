@@ -9,6 +9,9 @@ export default function ViewTripScreen() {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 
+
+	const BASE_URL = 'http://192.168.1.10:9000'
+
 	useEffect(() => {
 		if (!id) return;
 		const fetchActivities = async () => {
@@ -55,7 +58,7 @@ export default function ViewTripScreen() {
 							<View key={index} style={styles.card}>
 								{item.Activity.imageurl ? (
 									<Image
-										source={{ uri: item.Activity.imageurl }}
+										source={{ uri: `http://192.168.1.10:9000${item.Activity.imageurl}.png` }}
 										style={styles.image}
 										resizeMode="cover"
 									/>

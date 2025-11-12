@@ -188,76 +188,52 @@ const ItineraryBuilder = () => {
 	// Calculate total cost for current day
 	const dayTotal = currentDayActivities.reduce((sum, act) => sum + act.price, 0);
 
-	// Handle AI Recommendations
+	// Handle AI Recommendations (no replacement warning)
 	const handleAIRecommendations = async () => {
-		if (!itineraryInfo.countryId) {
-			Alert.alert('Missing Information', 'Please select a country first');
-			return;
+		if (!itineraryInfo.countryId) return;
+		if (totalDays <= 0) return;
+
+		setLoadingRecommendations(true);
+		try {
+			const payload = {
+				user_id: user!.id,
+				category_id: parseInt(itineraryInfo.countryId),
+				title: itineraryInfo.title || 'AI-Generated Itinerary',
+				description: itineraryInfo.description || 'Personalized itinerary based on your preferences',
+				start_date: itineraryInfo.startDate.toISOString().split('T')[0],
+				num_days: totalDays,
+			};
+
+			const response = await itineraryService.getRecommendedItinerary(payload);
+
+			if (response && response.ActivitiesWithDay) {
+				const parseTime = (t) => {
+					if (!t) return null;
+					const match = t.match(/T(\d{2}):(\d{2}):/);
+					if (!match) return null;
+					const d = new Date();
+					d.setHours(parseInt(match[1]), parseInt(match[2]), 0, 0);
+					return d;
+				};
+
+				const newActivities = response.ActivitiesWithDay.map(awd => ({
+					...awd.Activity,
+					dayNumber: awd.DayNumber,
+					orderInDay: awd.OrderInDay || 1,
+					startTime: parseTime(awd.StartTime),
+					endTime: parseTime(awd.EndTime),
+					tempId: `${awd.Activity.id}-${awd.DayNumber}-${Date.now()}`,
+				}));
+
+				setSelectedActivities(newActivities);
+			}
+		} catch (err) {
+			console.error('Failed to get AI recommendations', err);
+			Alert.alert('Error', 'Failed to load AI recommendations. Please try again.');
+		} finally {
+			setLoadingRecommendations(false);
 		}
-
-		if (totalDays <= 0) {
-			Alert.alert('Missing Information', 'Please set valid start and end dates');
-			return;
-		}
-
-		Alert.alert(
-			'AI Recommendations',
-			'This will replace your current itinerary with AI-generated recommendations. Continue?',
-			[
-				{ text: 'Cancel', style: 'cancel' },
-				{
-					text: 'Continue',
-					onPress: async () => {
-						setLoadingRecommendations(true);
-						try {
-							const payload = {
-								user_id: user.id,
-								category_id: parseInt(itineraryInfo.countryId), // Using country_id as category_id
-								title: itineraryInfo.title || 'AI-Generated Itinerary',
-								description: itineraryInfo.description || 'Personalized itinerary based on your preferences',
-								start_date: itineraryInfo.startDate.toISOString().split('T')[0],
-								num_days: totalDays,
-							};
-
-							const response = await itineraryService.synthesizeRecommendedItinerary(payload);
-
-							if (response && response.data) {
-								// Parse the returned itinerary and populate selectedActivities
-								const newActivities = [];
-
-								if (response.data.days && Array.isArray(response.data.days)) {
-									response.data.days.forEach(day => {
-										day.activities.forEach(act => {
-											const startTime = act.start_time ? new Date(`2000-01-01T${act.start_time}`) : null;
-											const endTime = act.end_time ? new Date(`2000-01-01T${act.end_time}`) : null;
-
-											newActivities.push({
-												...act.activity,
-												dayNumber: act.day_number,
-												orderInDay: act.order_in_day || 1,
-												startTime: startTime,
-												endTime: endTime,
-												tempId: `${act.activity.id}-${act.day_number}-${Date.now()}`,
-											});
-										});
-									});
-								}
-
-								setSelectedActivities(newActivities);
-								Alert.alert('Success', 'AI recommendations loaded successfully!');
-							}
-						} catch (err) {
-							console.error('Failed to get AI recommendations', err);
-							Alert.alert('Error', 'Failed to load AI recommendations. Please try again.');
-						} finally {
-							setLoadingRecommendations(false);
-						}
-					}
-				}
-			]
-		);
 	};
-
 	// Submit itinerary
 	const handleSubmit = async () => {
 		const formattedActivities = selectedActivities.map(act => ({
@@ -269,7 +245,7 @@ const ItineraryBuilder = () => {
 		}));
 
 		const payload = {
-			user_id: user.id,
+			user_id: user!.id,
 			title: itineraryInfo.title,
 			description: itineraryInfo.description,
 			start_date: itineraryInfo.startDate.toISOString().split('T')[0],
@@ -531,7 +507,7 @@ const ItineraryBuilder = () => {
 							<ScrollView horizontal showsHorizontalScrollIndicator={false}>
 								{filteredActivities.map(activity => (
 									<View key={activity.id} style={styles.activityCard}>
-										<Image source={{ uri: activity.imageurl }} style={styles.activityImage} />
+										<Image source={{ uri: `http://192.168.1.10:9000${activity.imageurl}` }} style={styles.activityImage} />
 										<View style={styles.activityInfo}>
 											<Text style={styles.activityName} numberOfLines={1}>{activity.name}</Text>
 											<Text style={styles.activityTitle} numberOfLines={1}>{activity.title}</Text>
@@ -562,7 +538,7 @@ const ItineraryBuilder = () => {
 								) : (
 									currentDayActivities.map((activity, index) => (
 										<View key={activity.tempId} style={styles.scheduledActivity}>
-											<Image source={{ uri: activity.imageurl }} style={styles.scheduledImage} />
+											<Image source={{ uri: `http://192.168.1.10:9000${activity.imageurl}` }} style={styles.scheduledImage} />
 											<View style={styles.scheduledInfo}>
 												<Text style={styles.scheduledName}>{activity.name}</Text>
 												<Text style={styles.scheduledTitle}>{activity.title}</Text>
@@ -1033,6 +1009,28 @@ const styles = StyleSheet.create({
 	emptyStateSubtext: {
 		fontSize: 12,
 		color: '#9CA3AF',
+	},
+	fab: {
+		position: 'absolute',
+		bottom: 24,
+		right: 24,
+		width: 64,
+		height: 64,
+		borderRadius: 32,
+		backgroundColor: '#8B5CF6',
+		justifyContent: 'center',
+		alignItems: 'center',
+		elevation: 8,
+		shadowColor: '#000',
+		shadowOpacity: 0.25,
+		shadowOffset: { width: 0, height: 4 },
+		shadowRadius: 8,
+		zIndex: 999,
+	},
+	fabText: {
+		color: '#FFFFFF',
+		fontSize: 18,
+		fontWeight: '700',
 	},
 });
 

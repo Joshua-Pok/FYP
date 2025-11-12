@@ -270,80 +270,87 @@ func formatItineraryResponse(itinerary models.ItineraryWithDays) ItineraryRespon
 func (h *ItineraryHandler) SynthesizeRecommendedItinerary(w http.ResponseWriter, r *http.Request) {
 	var req SynthesizeRecommendedItineraryRequest
 
+	// Decode request body
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Invalid Json format"})
+		json.NewEncoder(w).Encode(map[string]string{"error": "Invalid JSON format"})
 		return
 	}
 
+	// Validate required fields
 	if req.UserID == 0 || req.StartDate == "" || req.NumDays <= 0 {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"Error": "Missing required Fields"})
+		json.NewEncoder(w).Encode(map[string]string{"error": "Missing required fields"})
 		return
 	}
 
+	// Parse start date
 	startDate, err := time.Parse("2006-01-02", req.StartDate)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"Error": "Invalid start date"})
+		json.NewEncoder(w).Encode(map[string]string{"error": "Invalid start_date format"})
 		return
 	}
 
 	endDate := startDate.AddDate(0, 0, req.NumDays-1)
 
+	// Fetch activity recommendations from ActivityHandler
 	totalActivitiesNeeded := req.NumDays * 3
-	userIdStr := strconv.Itoa(req.UserID)
-	categoryIdStr := strconv.Itoa(req.CategoryID)
-	activities, err := h.activityHandler.GetRecommendationsForUser(userIdStr, categoryIdStr, totalActivitiesNeeded)
+	userIDStr := strconv.Itoa(req.UserID)
+	categoryIDStr := strconv.Itoa(req.CategoryID)
+	activities, err := h.activityHandler.GetRecommendationsForUser(userIDStr, categoryIDStr, totalActivitiesNeeded)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": "failed to get recommendations"})
+		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to get recommendations"})
 		return
 	}
+
+	// Build activities with day and time slots
 	var activitiesWithDay []models.ActivityWithDay
 	activityIndex := 0
-
 	for day := 1; day <= req.NumDays; day++ {
 		for orderInDay := 1; orderInDay <= 3; orderInDay++ {
 			if activityIndex >= len(activities) {
 				break
 			}
 
+			activity := activities[activityIndex]
+
+			// Assign default times: Morning, Afternoon, Evening
 			var startTime, endTime time.Time
 			switch orderInDay {
-			case 1: // Morning activity: 9:00 AM - 11:00 AM
+			case 1: // Morning
 				startTime, _ = time.Parse("15:04", "09:00")
 				endTime, _ = time.Parse("15:04", "11:00")
-			case 2: // Afternoon activity: 1:00 PM - 3:00 PM
+			case 2: // Afternoon
 				startTime, _ = time.Parse("15:04", "13:00")
 				endTime, _ = time.Parse("15:04", "15:00")
-			case 3: // Evening activity: 5:00 PM - 7:00 PM
+			case 3: // Evening
 				startTime, _ = time.Parse("15:04", "17:00")
 				endTime, _ = time.Parse("15:04", "19:00")
 			}
 
 			awd := models.ActivityWithDay{
-				Activity: models.Activity{
-					ID: activities[activityIndex].ID,
-				},
+				Activity:   activity,
 				DayNumber:  day,
 				StartTime:  &startTime,
 				EndTime:    &endTime,
 				OrderInDay: &orderInDay,
 			}
-
 			activitiesWithDay = append(activitiesWithDay, awd)
 			activityIndex++
 		}
 	}
 
+	// Default title and description
 	if req.Title == "" {
 		req.Title = "AI-Generated Itinerary"
 	}
 	if req.Description == "" {
-		req.Description = "Personalized itinerary based on your preference"
+		req.Description = "Personalized itinerary based on your preferences"
 	}
 
+	// Create itinerary in repository
 	itinerary, err := h.itineraryRepo.CreateItinerary(
 		req.UserID,
 		req.Title,
@@ -354,17 +361,17 @@ func (h *ItineraryHandler) SynthesizeRecommendedItinerary(w http.ResponseWriter,
 	)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"Error:": "Failed to create itinerary"})
+		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to create itinerary"})
 		return
 	}
 
+	// Return response
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 		"message": "Itinerary synthesized successfully",
 		"data":    itinerary,
 	})
-
 }
 
 // func (h *ItineraryHandler) GetItineraryWithDays(w http.ResponseWriter, r *http.Request) {

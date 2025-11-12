@@ -61,13 +61,6 @@ export default function ProfilePage() {
 			}
 
 
-			{/* Travel Preferences Section */}
-			<Card style={styles.card}>
-				<Card.Title title="Travel Preferences" titleStyle={styles.cardTitle} />
-				<Card.Content>
-					<Text style={styles.prefText}>{user.personality.extraversion}</Text>
-				</Card.Content>
-			</Card>
 		</ScrollView >
 	);
 }

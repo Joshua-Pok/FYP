@@ -19,7 +19,12 @@ export default function LoginScreen() {
 			const result = await loginService.login({ username: username, password: password })
 
 			if (result.success) {
-				const personality = await personalityService.getPersonalityByUserId(result.user?.id!)
+				let personality = null;
+				try {
+					personality = await personalityService.getPersonalityByUserId(result.user?.id!)
+				} catch (err) {
+					console.warn("No personality found for user: ${err}")
+				}
 				setUser({
 					id: result.user?.id!,
 					name: result.user?.name!,

@@ -6,6 +6,7 @@ import {
 	FlatList,
 	TouchableOpacity,
 	ActivityIndicator,
+	ScrollView,
 } from "react-native";
 import { Button } from "react-native-paper";
 import { Calendar, Plus } from "lucide-react-native";
@@ -48,6 +49,10 @@ export default function ItinerariesScreen() {
 		router.push(`/ViewTripScreen/${id}`);
 	};
 
+	const handleCreateItinerary = () => {
+		router.push("/CreateItinerary");
+	};
+
 	if (loading) {
 		return (
 			<View style={styles.centered}>
@@ -58,7 +63,7 @@ export default function ItinerariesScreen() {
 
 	if (itineraries.length === 0) {
 		return (
-			<View style={styles.emptyContainer}>
+			<ScrollView contentContainerStyle={styles.emptyContainer}>
 				<View style={styles.iconContainer}>
 					<Calendar size={48} />
 				</View>
@@ -66,21 +71,26 @@ export default function ItinerariesScreen() {
 				<Text style={styles.emptyDescription}>
 					Start planning your next adventure by creating your first itinerary.
 				</Text>
-				<Button
-					mode="contained"
-					icon={() => <Plus size={16} />}
-					style={styles.newButton}
-				>
-					Create Your First Itinerary
-				</Button>
-			</View>
+				<View style={styles.buttonWrapper}>
+					<Button
+						mode="contained"
+						icon={() => <Plus size={16} color="white" />}
+						style={styles.newButton}
+						onPress={handleCreateItinerary}
+						contentStyle={styles.newButtonContent}
+						labelStyle={styles.newButtonLabel}
+					>
+						Create Your First Itinerary
+					</Button>
+				</View>
+			</ScrollView>
 		);
 	}
 
 	return (
 		<View style={styles.container}>
 			<View style={styles.header}>
-				<View>
+				<View style={{ flexShrink: 1 }}>
 					<Text style={styles.headerTitle}>My Itineraries</Text>
 					<Text style={styles.headerSubtitle}>
 						Plan and manage your upcoming travel adventures
@@ -88,8 +98,11 @@ export default function ItinerariesScreen() {
 				</View>
 				<Button
 					mode="contained"
-					icon={() => <Plus size={16} />}
-					style={styles.newButton}
+					icon={() => <Plus size={16} color="white" />}
+					style={styles.newButtonHeader}
+					contentStyle={styles.newButtonContent}
+					labelStyle={styles.newButtonLabel}
+					onPress={handleCreateItinerary}
 				>
 					New Itinerary
 				</Button>
@@ -121,20 +134,48 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		justifyContent: "space-between",
 		alignItems: "center",
-		padding: 20,
+		paddingHorizontal: 20,
+		paddingVertical: 16,
 		borderBottomWidth: 1,
 		borderColor: "#ddd",
 		backgroundColor: "#fafafa",
 	},
 	headerTitle: { fontSize: 22, fontWeight: "bold", color: "#222" },
-	headerSubtitle: { color: "#666", marginTop: 4 },
+	headerSubtitle: { color: "#666", marginTop: 4, flexShrink: 1 },
 	listContainer: { padding: 16 },
-	newButton: { borderRadius: 8, backgroundColor: "#4caf50" },
+
+	// ✅ Ensures buttons stay visible and centered
+	newButton: {
+		borderRadius: 8,
+		backgroundColor: "#4caf50",
+		alignSelf: "center",
+		width: "90%",
+	},
+	newButtonHeader: {
+		borderRadius: 8,
+		backgroundColor: "#4caf50",
+	},
+	newButtonContent: {
+		paddingVertical: 8,
+		paddingHorizontal: 12,
+	},
+	newButtonLabel: {
+		fontSize: 14,
+		fontWeight: "600",
+		color: "white",
+	},
+
+	buttonWrapper: {
+		width: "100%",
+		alignItems: "center",
+	},
+
 	emptyContainer: {
-		flex: 1,
+		flexGrow: 1,
 		justifyContent: "center",
 		alignItems: "center",
-		paddingHorizontal: 30,
+		paddingHorizontal: 24,
+		paddingVertical: 40,
 	},
 	iconContainer: {
 		backgroundColor: "#f2f2f2",
@@ -143,6 +184,5 @@ const styles = StyleSheet.create({
 		marginBottom: 16,
 	},
 	emptyTitle: { fontSize: 22, fontWeight: "600", marginBottom: 8 },
-	emptyDescription: { color: "#777", textAlign: "center", marginBottom: 20 },
+	emptyDescription: { color: "#777", textAlign: "center", marginBottom: 24 },
 });
-
